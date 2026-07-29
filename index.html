@@ -1,0 +1,1626 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>抖音电商创作工作台</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#16a34a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="创作工作台">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0fdf4',
+              100: '#dcfce7',
+              200: '#bbf7d0',
+              300: '#86efac',
+              400: '#4ade80',
+              500: '#22c55e',
+              600: '#16a34a',
+              700: '#15803d',
+              800: '#166534',
+              900: '#14532d'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; }
+    .nav-item.active { background: linear-gradient(90deg, #16a34a 0%, #22c55e 100%); color: white; box-shadow: 0 4px 14px rgba(22, 163, 74, 0.25); }
+    .card { transition: all 0.2s ease; }
+    .card:hover { transform: translateY(-2px); box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1); }
+    .checkbox-wrapper input:checked + div { background-color: #16a34a; border-color: #16a34a; }
+    .checkbox-wrapper input:checked + div svg { display: block; }
+    .progress-bar { transition: width 0.5s ease; }
+    .fade-in { animation: fadeIn 0.3s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    .tag { transition: all 0.2s; }
+    .tag:hover { transform: scale(1.05); }
+    textarea, input { outline: none; }
+    .script-box { background: #f8fafc; border-left: 4px solid #16a34a; }
+    .hot-item { transition: all 0.2s; }
+    .hot-item:hover { background-color: #f0fdf4; }
+    .info-tip { position: relative; display: inline-flex; color: #94a3b8; cursor: help; font-size: 13px; line-height: 1; transition: color .2s; vertical-align: middle; }
+    .info-tip:hover, .info-tip.active { color: #16a34a; }
+    .info-tip::before { content: attr(data-tip); position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%); padding: 8px 12px; background: rgba(15,23,42,0.92); color: #fff; font-size: 12px; line-height: 1.6; border-radius: 8px; white-space: normal; max-width: 280px; width: max-content; opacity: 0; visibility: hidden; pointer-events: none; transition: opacity .2s, visibility .2s; z-index: 100; box-shadow: 0 4px 12px rgba(0,0,0,0.15); text-align: left; }
+    .info-tip.tip-right::before { left: auto; right: 0; transform: none; }
+    .info-tip:hover::before, .info-tip.active::before { opacity: 1; visibility: visible; }
+    .info-tip::after { content: ''; position: absolute; bottom: calc(100% + 1px); left: 50%; transform: translateX(-50%); border: 5px solid transparent; border-top-color: rgba(15,23,42,0.92); opacity: 0; visibility: hidden; transition: opacity .2s, visibility .2s; }
+    .info-tip.tip-right::after { left: auto; right: 6px; transform: none; }
+    .info-tip:hover::after, .info-tip.active::after { opacity: 1; visibility: visible; }
+    @media (max-width: 640px) { .info-tip::before { max-width: 220px; } }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 h-screen overflow-hidden">
+
+<div id="update-banner" class="hidden fixed top-0 left-0 right-0 z-50 bg-amber-50 border-b border-amber-200 text-amber-800 text-sm px-4 py-2 text-center">
+  <i class="fa-solid fa-rotate mr-1"></i>检测到新版本，请刷新页面以获取最新功能。
+  <button onclick="location.reload()" class="ml-2 px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-md text-xs">立即刷新</button>
+</div>
+
+<div class="flex h-full">
+  <!-- 侧边栏 -->
+  <aside class="w-72 bg-white border-r border-slate-200 flex flex-col shadow-sm z-10">
+    <div class="p-6 border-b border-slate-100">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center text-white text-lg">
+          <i class="fa-solid fa-briefcase"></i>
+        </div>
+        <div>
+          <h1 class="font-bold text-lg text-slate-900 leading-tight">创作工作台</h1>
+          <p class="text-xs text-slate-500">抖音电商 · 水饮类目</p>
+        </div>
+      </div>
+    </div>
+
+    <nav class="flex-1 p-4 space-y-2 overflow-y-auto">
+      <button onclick="switchTab('daily')" id="nav-daily" class="nav-item active w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 transition-all">
+        <i class="fa-solid fa-clipboard-check w-5 text-center"></i>
+        <span>每日计划</span>
+      </button>
+      <button onclick="switchTab('ideas')" id="nav-ideas" class="nav-item w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 transition-all">
+        <i class="fa-regular fa-lightbulb w-5 text-center"></i>
+        <span>选题每日灵感</span>
+      </button>
+      <button onclick="switchTab('trending')" id="nav-trending" class="nav-item w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 transition-all">
+        <i class="fa-solid fa-fire w-5 text-center"></i>
+        <span>爆款热点视频 / 二创</span>
+      </button>
+      <button onclick="switchTab('review')" id="nav-review" class="nav-item w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 transition-all">
+        <i class="fa-solid fa-chart-column w-5 text-center"></i>
+        <span>内容复盘</span>
+      </button>
+      <button onclick="switchTab('memo')" id="nav-memo" class="nav-item w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 transition-all">
+        <i class="fa-solid fa-note-sticky w-5 text-center"></i>
+        <span>备忘录</span>
+      </button>
+      <button onclick="switchTab('products')" id="nav-products" class="nav-item w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 transition-all">
+        <i class="fa-solid fa-box-open w-5 text-center"></i>
+        <span>在售商品</span>
+      </button>
+    </nav>
+
+    <div class="p-4 border-t border-slate-100">
+      <div class="bg-brand-50 rounded-xl p-4">
+        <div class="flex items-center gap-2 mb-2">
+          <i class="fa-solid fa-user text-brand-600"></i>
+          <span class="text-sm font-semibold text-brand-900">冯建慧</span>
+        </div>
+        <p class="text-xs text-brand-700 leading-relaxed">苏州 · 水饮类目运营<br>5 家抖音小店</p>
+      </div>
+    </div>
+  </aside>
+
+  <!-- 主内容区 -->
+  <main class="flex-1 flex flex-col h-full overflow-hidden">
+    <!-- 顶部栏 -->
+    <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 flex-shrink-0">
+      <div class="flex items-center gap-3">
+        <h2 id="page-title" class="text-xl font-bold text-slate-800">每日计划</h2>
+        <span id="today-date" class="text-sm text-slate-500 bg-slate-100 px-3 py-1 rounded-full"></span>
+      </div>
+      <div class="flex items-center gap-3">
+        <button onclick="exportData()" class="text-sm px-4 py-2 text-slate-600 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-colors">
+          <i class="fa-solid fa-download mr-1"></i> 导出数据
+          <span class="info-tip ml-1.5" data-tip="把所有模块数据（每日计划、灵感、复盘记录、备忘录、在售商品编辑等）打包下载为 JSON 文件，用于备份或换设备时迁移。" onclick="event.stopPropagation()"><i class="fa-solid fa-circle-exclamation"></i></span>
+        </button>
+        <button onclick="importData()" class="text-sm px-4 py-2 text-slate-600 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-colors">
+          <i class="fa-solid fa-upload mr-1"></i> 导入数据
+          <span class="info-tip ml-1.5" data-tip="从「导出数据」生成的 JSON 文件中恢复数据。导入后会覆盖当前页面的全部数据，操作前请确认已备份或当前数据不再需要。" onclick="event.stopPropagation()"><i class="fa-solid fa-circle-exclamation"></i></span>
+        </button>
+        <button onclick="generateSyncLink()" class="text-sm px-4 py-2 text-slate-600 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-colors">
+          <i class="fa-solid fa-arrow-right-arrow-left mr-1"></i> 生成同步链接
+          <span class="info-tip ml-1.5" data-tip="把当前数据压缩编码进一条短链接并生成二维码，转发到手机或另一台电脑打开即可自动同步，无需注册账号。" onclick="event.stopPropagation()"><i class="fa-solid fa-circle-exclamation"></i></span>
+        </button>
+        <input type="file" id="import-file" accept="application/json,.json" style="display:none" onchange="handleImport(this.files[0])">
+        <button onclick="clearAllData()" class="text-sm px-4 py-2 text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+          <i class="fa-solid fa-trash-can mr-1"></i> 清空
+          <span class="info-tip ml-1.5 tip-right" data-tip="清空当前所有数据（每日计划、复盘记录、备忘录、在售商品编辑等）。清空后无法恢复，建议先导出备份。" onclick="event.stopPropagation()"><i class="fa-solid fa-circle-exclamation"></i></span>
+        </button>
+      </div>
+    </header>
+
+    <!-- 内容滚动区 -->
+    <div id="content-area" class="flex-1 overflow-y-auto p-8">
+
+      <!-- 1. 每日计划 -->
+      <section id="tab-daily" class="tab-content fade-in">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+          <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="font-semibold text-slate-700">今日完成度</h3>
+              <span id="progress-text" class="text-2xl font-bold text-brand-600">0%</span>
+            </div>
+            <div class="w-full bg-slate-100 rounded-full h-3 mb-4">
+              <div id="progress-bar" class="progress-bar bg-gradient-to-r from-brand-400 to-brand-600 h-3 rounded-full" style="width: 0%"></div>
+            </div>
+            <p class="text-sm text-slate-500"><span id="completed-count">0</span> / <span id="total-count">0</span> 项已完成</p>
+          </div>
+
+          <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+            <h3 class="font-semibold text-slate-700 mb-3">快捷添加</h3>
+            <div class="flex flex-wrap gap-2">
+              <button onclick="quickAddTask('检查 5 店昨日 GMV 与千川消耗')" class="text-xs px-3 py-1.5 bg-slate-100 hover:bg-brand-100 hover:text-brand-700 rounded-full transition-colors">检查 5 店数据</button>
+              <button onclick="quickAddTask('查看电商罗盘曝光转化')" class="text-xs px-3 py-1.5 bg-slate-100 hover:bg-brand-100 hover:text-brand-700 rounded-full transition-colors">电商罗盘</button>
+              <button onclick="quickAddTask('找 3 条抖音爆款热点做二创')" class="text-xs px-3 py-1.5 bg-slate-100 hover:bg-brand-100 hover:text-brand-700 rounded-full transition-colors">找爆款热点</button>
+              <button onclick="quickAddTask('发布今日挂车/引流视频')" class="text-xs px-3 py-1.5 bg-slate-100 hover:bg-brand-100 hover:text-brand-700 rounded-full transition-colors">发布视频</button>
+              <button onclick="quickAddTask('复盘昨日发布视频数据')" class="text-xs px-3 py-1.5 bg-slate-100 hover:bg-brand-100 hover:text-brand-700 rounded-full transition-colors">复盘昨日视频</button>
+              <button onclick="quickAddTask('与剪辑对接明日脚本')" class="text-xs px-3 py-1.5 bg-slate-100 hover:bg-brand-100 hover:text-brand-700 rounded-full transition-colors">对接剪辑</button>
+            </div>
+          </div>
+
+          <div class="bg-gradient-to-br from-brand-500 to-brand-700 rounded-2xl p-6 text-white shadow-md">
+            <h3 class="font-semibold mb-2"><i class="fa-solid fa-quote-left mr-2 opacity-60"></i>今日运营提醒</h3>
+            <p id="daily-tip" class="text-sm leading-relaxed opacity-95">黄金 3 秒决定生死，前 3 秒别介绍产品，先给冲突或利益。</p>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="p-6 border-b border-slate-100">
+            <div class="flex gap-3">
+              <input id="new-task" type="text" placeholder="输入今日任务，按回车添加..." class="flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-all" onkeypress="handleTaskKey(event)">
+              <button onclick="addTask()" class="px-6 py-3 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-medium transition-colors">
+                <i class="fa-solid fa-plus mr-1"></i> 添加
+              </button>
+            </div>
+          </div>
+          <div id="task-list" class="divide-y divide-slate-100">
+            <!-- 任务列表 -->
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. 选题每日灵感 -->
+      <section id="tab-ideas" class="tab-content hidden fade-in">
+        <div class="flex items-center justify-between mb-6">
+          <div>
+            <h3 class="text-lg font-semibold text-slate-800">基于水饮类目的每日选题灵感</h3>
+            <p class="text-sm text-slate-500 mt-1">覆盖 5 店定位：洞庭山、洞庭山泉、蘇泉、好水严选、虎丘</p>
+          </div>
+          <div class="flex items-center gap-3">
+            <button onclick="openIdeaModal()" class="px-5 py-2.5 bg-white border border-brand-200 text-brand-700 hover:bg-brand-50 rounded-xl text-sm font-medium transition-colors">
+              <i class="fa-solid fa-plus mr-2"></i>添加灵感
+            </button>
+            <button onclick="refreshIdeas()" class="px-5 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-medium transition-colors">
+              <i class="fa-solid fa-arrows-rotate mr-2"></i>刷新灵感
+            </button>
+          </div>
+        </div>
+        <div id="ideas-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+          <!-- 灵感卡片 -->
+        </div>
+
+        <!-- 原创脚本工坊 -->
+        <div class="mt-8 bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+          <h3 class="font-semibold text-slate-800 mb-1"><i class="fa-solid fa-lightbulb text-brand-600 mr-2"></i>原创脚本工坊</h3>
+          <p class="text-sm text-slate-500 mb-5">选一条灵感 + 商品 + 卖点，一键生成属于你的原创短视频脚本，不依赖热点也能拍。</p>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1.5">① 选择灵感</label>
+              <select id="idea-select" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500">
+                <option value="">请选择灵感</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1.5">② 选择店铺</label>
+              <select id="idea-shop-select" onchange="onIdeaShopChange()" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500">
+                <option value="洞庭山官方旗舰店">洞庭山官方旗舰店</option>
+                <option value="洞庭山泉官方旗舰店">洞庭山泉官方旗舰店</option>
+                <option value="蘇泉水饮旗舰店">蘇泉水饮旗舰店</option>
+                <option value="好水严选">好水严选</option>
+                <option value="虎丘官方旗舰店">虎丘官方旗舰店</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1.5">③ 选择在售商品 <span class="text-xs text-slate-400 font-normal">（自动带出卖点）</span></label>
+              <select id="idea-product-select" onchange="onIdeaProductChange()" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500">
+                <option value="">不指定商品（手填卖点）</option>
+              </select>
+              <p id="idea-product-meta" class="hidden text-xs text-slate-500 mt-1.5 bg-slate-50 rounded-lg px-3 py-2"></p>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1.5">④ 想突出的卖点</label>
+              <input id="idea-selling-point" type="text" placeholder="例如：天然弱碱性、泡茶更甘甜、母婴适用" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500">
+            </div>
+          </div>
+          <button onclick="generateOriginal()" class="mt-5 w-full py-3 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-medium transition-colors flex items-center justify-center">
+            <i class="fa-solid fa-wand-magic-sparkles mr-2"></i>生成原创脚本
+            <span class="info-tip ml-2" data-tip="根据选中的灵感主题、店铺和在售商品卖点，自动生成一条原创口播脚本（黄金3秒+卖点展示+CTA+标签），不依赖热点。" onclick="event.stopPropagation()"><i class="fa-solid fa-circle-exclamation"></i></span>
+          </button>
+          <div id="original-result" class="hidden mt-5 bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+            <h3 class="font-semibold text-slate-800 mb-4">原创脚本</h3>
+            <div id="original-content" class="space-y-4"></div>
+            <div class="mt-4 flex flex-wrap gap-2">
+              <button onclick="copyOriginal()" class="px-4 py-2 text-sm bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors"><i class="fa-solid fa-copy mr-1"></i>复制</button>
+              <button onclick="saveOriginalToMemo()" class="px-4 py-2 text-sm bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors"><i class="fa-solid fa-note-sticky mr-1"></i>存备忘录</button>
+              <button onclick="useOriginalAsTask()" class="px-4 py-2 text-sm bg-brand-600 hover:bg-brand-700 text-white rounded-lg transition-colors"><i class="fa-solid fa-list-check mr-1"></i>加入每日计划</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. 爆款热点视频 / 二创 -->
+      <section id="tab-trending" class="tab-content hidden fade-in">
+        <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+          <!-- 左侧：热点列表 -->
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div class="p-5 border-b border-slate-100 flex items-center justify-between">
+              <h3 class="font-semibold text-slate-800"><i class="fa-solid fa-fire text-orange-500 mr-2"></i>抖音实时热点（示例数据）</h3>
+              <span class="text-xs text-slate-500 bg-slate-100 px-2 py-1 rounded">每日更新</span>
+            </div>
+            <div id="hot-list" class="divide-y divide-slate-100 max-h-[600px] overflow-y-auto">
+              <!-- 热点项 -->
+            </div>
+            <div class="p-4 bg-slate-50 border-t border-slate-100 text-xs text-slate-500">
+              <i class="fa-solid fa-circle-info mr-1"></i> 接入真实热榜需配置 GUAIKEI_API_TOKEN，当前为示例数据演示交互。
+            </div>
+          </div>
+
+          <!-- 右侧：二创工作台 -->
+          <div class="space-y-6">
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+              <h3 class="font-semibold text-slate-800 mb-4"><i class="fa-solid fa-wand-magic-sparkles text-brand-600 mr-2"></i>爆款仿写 / 二创</h3>
+              <div class="space-y-4">
+                <div>
+                  <label class="block text-sm font-medium text-slate-700 mb-1.5">选择热点</label>
+                  <select id="selected-hot" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500">
+                    <option value="">请选择要改编的热点</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-slate-700 mb-1.5">选择店铺</label>
+                  <select id="shop-select" onchange="onShopChange()" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500">
+                    <option value="洞庭山官方旗舰店">洞庭山官方旗舰店</option>
+                    <option value="洞庭山泉官方旗舰店">洞庭山泉官方旗舰店</option>
+                    <option value="蘇泉水饮旗舰店">蘇泉水饮旗舰店</option>
+                    <option value="好水严选">好水严选</option>
+                    <option value="虎丘官方旗舰店">虎丘官方旗舰店</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-slate-700 mb-1.5">选择在售商品 <span class="text-xs text-slate-400 font-normal">（自动带出卖点）</span></label>
+                  <select id="product-select" onchange="onProductChange()" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500">
+                    <option value="">不指定商品（手填卖点）</option>
+                  </select>
+                  <p id="product-meta" class="hidden text-xs text-slate-500 mt-1.5 bg-slate-50 rounded-lg px-3 py-2"></p>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-slate-700 mb-1.5">想突出的卖点</label>
+                  <input id="selling-point" type="text" placeholder="例如：天然弱碱性、泡茶更甘甜、母婴适用" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500">
+                </div>
+                <button onclick="generateRewrite()" class="w-full py-3 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-medium transition-colors flex items-center justify-center">
+                  <i class="fa-solid fa-wand-magic-sparkles mr-2"></i>生成二创脚本
+                  <span class="info-tip ml-2" data-tip="根据你选中的抖音热点、在售店铺和商品卖点，自动生成带黄金3秒、正文、CTA和标签的短视频口播脚本。" onclick="event.stopPropagation()"><i class="fa-solid fa-circle-exclamation"></i></span>
+                </button>
+              </div>
+            </div>
+
+            <div id="rewrite-result" class="hidden bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+              <h3 class="font-semibold text-slate-800 mb-4">二创脚本</h3>
+              <div id="rewrite-content" class="space-y-4"></div>
+              <div class="mt-4 flex gap-2">
+                <button onclick="copyRewrite()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm transition-colors"><i class="fa-regular fa-copy mr-1"></i>复制脚本</button>
+                <button onclick="saveRewriteToMemo()" class="px-4 py-2 bg-brand-50 hover:bg-brand-100 text-brand-700 rounded-lg text-sm transition-colors"><i class="fa-solid fa-plus mr-1"></i>加入备忘录</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 4. 内容复盘 -->
+      <section id="tab-review" class="tab-content hidden fade-in">
+        <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+          <!-- 左侧：数据录入 -->
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+            <h3 class="font-semibold text-slate-800 mb-5"><i class="fa-solid fa-pen-to-square text-brand-600 mr-2"></i>录入视频数据</h3>
+            <div class="space-y-4">
+              <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1.5">视频标题 / 脚本方向</label>
+                <input id="rev-title" type="text" placeholder="例如：夏天办公室囤水指南" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500">
+              </div>
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-sm font-medium text-slate-700 mb-1.5">发布日期</label>
+                  <input id="rev-pubdate" type="date" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500">
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-slate-700 mb-1.5">录入时间</label>
+                  <input id="rev-entertime" type="datetime-local" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500">
+                </div>
+              </div>
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-sm font-medium text-slate-700 mb-1.5">播放量</label>
+                  <input id="rev-play" type="number" placeholder="0" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500">
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-slate-700 mb-1.5">点赞数</label>
+                  <input id="rev-like" type="number" placeholder="0" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500">
+                </div>
+              </div>
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-sm font-medium text-slate-700 mb-1.5">评论数</label>
+                  <input id="rev-comment" type="number" placeholder="0" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500">
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-slate-700 mb-1.5">转发数</label>
+                  <input id="rev-share" type="number" placeholder="0" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500">
+                </div>
+              </div>
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-sm font-medium text-slate-700 mb-1.5">完播率 (%)</label>
+                  <input id="rev-finish" type="number" step="0.1" placeholder="0" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500">
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-slate-700 mb-1.5">5秒完播率 (%)</label>
+                  <input id="rev-5s" type="number" step="0.1" placeholder="0" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500">
+                </div>
+              </div>
+              <div class="grid grid-cols-3 gap-4">
+                <div>
+                  <label class="block text-sm font-medium text-slate-700 mb-1.5">CTR (%)</label>
+                  <input id="rev-ctr" type="number" step="0.01" placeholder="0" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500">
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-slate-700 mb-1.5">CVR (%)</label>
+                  <input id="rev-cvr" type="number" step="0.01" placeholder="0" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500">
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-slate-700 mb-1.5">ROI</label>
+                  <input id="rev-roi" type="number" step="0.01" placeholder="0" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500">
+                </div>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1.5">千川消耗（元）</label>
+                <input id="rev-cost" type="number" placeholder="0" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500">
+              </div>
+              <button onclick="generateReview()" class="w-full py-3 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-medium transition-colors flex items-center justify-center">
+                <i class="fa-solid fa-wand-magic-sparkles mr-2"></i>生成复盘报告
+                <span class="info-tip ml-2" data-tip="根据你填写的播放量、完播率、CTR、CVR、ROI、千川消耗等数据，自动打分并给出问题诊断和下次优化方向。" onclick="event.stopPropagation()"><i class="fa-solid fa-circle-exclamation"></i></span>
+              </button>
+            </div>
+          </div>
+
+          <!-- 右侧：复盘报告 -->
+          <div class="space-y-6">
+            <div id="review-result" class="hidden bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+              <h3 class="font-semibold text-slate-800 mb-4">复盘诊断报告</h3>
+              <div id="review-content" class="space-y-4"></div>
+            </div>
+
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+              <h3 class="font-semibold text-slate-800 mb-4"><i class="fa-solid fa-clock-rotate-left text-brand-600 mr-2"></i>历史复盘记录</h3>
+              <div id="review-history" class="space-y-3 max-h-[400px] overflow-y-auto">
+                <p class="text-sm text-slate-400 text-center py-8">暂无复盘记录</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 5. 备忘录 -->
+      <section id="tab-memo" class="tab-content hidden fade-in">
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden h-[calc(100vh-180px)] flex flex-col">
+          <div class="p-5 border-b border-slate-100 flex items-center justify-between">
+            <h3 class="font-semibold text-slate-800"><i class="fa-solid fa-note-sticky text-brand-600 mr-2"></i>运营备忘录</h3>
+            <span id="memo-status" class="text-xs text-slate-400">自动保存中...</span>
+          </div>
+          <textarea id="memo-text" class="flex-1 w-full p-6 resize-none border-0 text-sm leading-relaxed text-slate-700 bg-slate-50 focus:bg-white transition-colors" placeholder="记录临时想法、达人对接信息、上级要求、活动节点..." oninput="saveMemo()"></textarea>
+        </div>
+      </section>
+
+      <!-- 6. 在售商品 -->
+      <section id="tab-products" class="tab-content hidden fade-in">
+        <div class="flex items-center justify-between mb-5 flex-wrap gap-3">
+          <div>
+            <h3 class="text-lg font-semibold text-slate-800">在售商品库</h3>
+            <p class="text-sm text-slate-500 mt-1">数据来源：店铺在售品牌和品牌在售商品.xlsx · 管控价 / 活动 / 卖点可直接点击编辑，自动保存</p>
+          </div>
+          <div class="flex items-center gap-3">
+            <select id="prod-shop-filter" onchange="renderProducts()" class="px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500">
+              <option value="">全部店铺</option>
+            </select>
+            <select id="prod-brand-filter" onchange="renderProducts()" class="px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500">
+              <option value="">全部品牌</option>
+            </select>
+            <input id="prod-search" type="text" placeholder="搜索商品..." oninput="renderProducts()" class="px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm w-44 focus:ring-2 focus:ring-brand-500">
+          </div>
+        </div>
+
+        <div id="prod-shop-summary" class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-5"></div>
+
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="bg-slate-50 text-left text-xs text-slate-500 uppercase">
+                  <th class="px-4 py-3 font-medium">商品</th>
+                  <th class="px-4 py-3 font-medium">品牌</th>
+                  <th class="px-4 py-3 font-medium">在售店铺</th>
+                  <th class="px-4 py-3 font-medium w-28">管控价</th>
+                  <th class="px-4 py-3 font-medium w-36">目前活动</th>
+                  <th class="px-4 py-3 font-medium">卖点</th>
+                  <th class="px-4 py-3 font-medium w-20">操作</th>
+                </tr>
+              </thead>
+              <tbody id="prod-table-body" class="divide-y divide-slate-100"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<script>
+  // ================= 数据存储 =================
+  const STORAGE_KEY = 'dy_creator_workbench_v1';
+
+  function loadData() {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+    return {
+      tasks: [],
+      ideas: [],
+      customIdeas: [],
+      reviews: [],
+      memo: '',
+      lastDate: new Date().toDateString()
+    };
+  }
+
+  function saveData(data) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  }
+
+  let appData = loadData();
+
+  // 日期显示
+  function updateDate() {
+    const now = new Date();
+    const options = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' };
+    document.getElementById('today-date').textContent = now.toLocaleDateString('zh-CN', options);
+  }
+
+  // ================= 导航切换 =================
+  function switchTab(tabName) {
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+    document.getElementById('tab-' + tabName).classList.remove('hidden');
+    document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+    document.getElementById('nav-' + tabName).classList.add('active');
+
+    const titles = {
+      daily: '每日计划',
+      ideas: '选题每日灵感',
+      trending: '爆款热点视频 / 二创',
+      review: '内容复盘',
+      memo: '备忘录',
+      products: '在售商品'
+    };
+    document.getElementById('page-title').textContent = titles[tabName];
+
+    if (tabName === 'ideas') { renderIdeas(); initIdeaScript(); }
+    if (tabName === 'trending') { renderHotList(); populateProductSelect(); }
+    if (tabName === 'review') { renderReviewHistory(); fillReviewDefaults(); }
+    if (tabName === 'memo') document.getElementById('memo-text').value = appData.memo || '';
+    if (tabName === 'products') renderProducts();
+  }
+
+  // ================= 每日计划 =================
+  function renderTasks() {
+    const list = document.getElementById('task-list');
+    if (appData.tasks.length === 0) {
+      list.innerHTML = '<div class="p-8 text-center text-slate-400 text-sm">还没有任务，添加一条开始今天的工作吧</div>';
+    } else {
+      list.innerHTML = appData.tasks.map((task, index) => `
+        <div class="p-4 flex items-center gap-4 group hover:bg-slate-50 transition-colors">
+          <label class="checkbox-wrapper cursor-pointer relative flex items-center">
+            <input type="checkbox" class="sr-only" ${task.done ? 'checked' : ''} onchange="toggleTask(${index})">
+            <div class="w-5 h-5 border-2 border-slate-300 rounded-md flex items-center justify-center transition-colors">
+              <svg class="w-3 h-3 text-white hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+            </div>
+          </label>
+          <span class="flex-1 text-sm ${task.done ? 'text-slate-400 line-through' : 'text-slate-700'}">${escapeHtml(task.text)}</span>
+          <button onclick="deleteTask(${index})" class="text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+      `).join('');
+    }
+
+    const total = appData.tasks.length;
+    const completed = appData.tasks.filter(t => t.done).length;
+    const pct = total === 0 ? 0 : Math.round((completed / total) * 100);
+    document.getElementById('progress-text').textContent = pct + '%';
+    document.getElementById('progress-bar').style.width = pct + '%';
+    document.getElementById('completed-count').textContent = completed;
+    document.getElementById('total-count').textContent = total;
+  }
+
+  function addTask() {
+    const input = document.getElementById('new-task');
+    const text = input.value.trim();
+    if (!text) return;
+    appData.tasks.push({ text, done: false });
+    saveData(appData);
+    input.value = '';
+    renderTasks();
+  }
+
+  function quickAddTask(text) {
+    appData.tasks.push({ text, done: false });
+    saveData(appData);
+    renderTasks();
+  }
+
+  function toggleTask(index) {
+    appData.tasks[index].done = !appData.tasks[index].done;
+    saveData(appData);
+    renderTasks();
+  }
+
+  function deleteTask(index) {
+    appData.tasks.splice(index, 1);
+    saveData(appData);
+    renderTasks();
+  }
+
+  function handleTaskKey(e) {
+    if (e.key === 'Enter') addTask();
+  }
+
+  // ================= 选题灵感 =================
+  const ideaTemplates = [
+    { title: '夏天办公室囤水指南', direction: '场景种草', shop: '洞庭山官方旗舰店', format: '15-30s' },
+    { title: '泡茶用什么水更甘甜？', direction: '知识科普', shop: '洞庭山泉官方旗舰店', format: '30-45s' },
+    { title: '母婴家庭选水 3 个标准', direction: '信任背书', shop: '蘇泉水饮旗舰店', format: '30-45s' },
+    { title: '运动后补水，别喝错水', direction: '运动场景', shop: '虎丘官方旗舰店', format: '15-30s' },
+    { title: '煲汤好喝的秘密在水质', direction: '厨房场景', shop: '好水严选', format: '30-45s' },
+    { title: '矿泉水 vs 纯净水的区别', direction: '对比实验', shop: '洞庭山官方旗舰店', format: '30-45s' },
+    { title: '后备箱常备一箱水', direction: '车载场景', shop: '蘇泉水饮旗舰店', format: '15-30s' },
+    { title: '送礼送健康：高端水礼盒', direction: '节日送礼', shop: '洞庭山官方旗舰店', format: '15-30s' },
+    { title: '家里的水垢说明什么？', direction: '痛点共鸣', shop: '好水严选', format: '30-45s' },
+    { title: '江南好水，水源地实拍', direction: '产地溯源', shop: '虎丘官方旗舰店', format: '45-60s' },
+    { title: '一天 8 杯水，你喝对了吗？', direction: '健康科普', shop: '洞庭山泉官方旗舰店', format: '30-45s' },
+    { title: '租房党囤水不费力', direction: '便捷场景', shop: '蘇泉水饮旗舰店', format: '15-30s' },
+    { title: '为什么直播间的老粉都囤这个水？', direction: '从众心理', shop: '洞庭山官方旗舰店', format: '30-45s' },
+    { title: '露营野餐带什么水？', direction: '户外场景', shop: '虎丘官方旗舰店', format: '15-30s' },
+    { title: '早上第一杯水的讲究', direction: '健康养生', shop: '好水严选', format: '30-45s' }
+  ];
+
+  function refreshIdeas() {
+    //  Fisher-Yates 随机取 6 条
+    const shuffled = [...ideaTemplates].sort(() => 0.5 - Math.random());
+    appData.ideas = shuffled.slice(0, 6);
+    saveData(appData);
+    renderIdeas();
+  }
+
+  // 组合展示：用户自定义灵感（置顶、带删除）+ 每日随机灵感
+  function buildIdeaDisplay() {
+    const custom = (appData.customIdeas || []).map((x, idx) => ({ ...x, custom: true, customIdx: idx }));
+    const daily = (appData.ideas || []).map(x => ({ ...x, custom: false, customIdx: -1 }));
+    return [...custom, ...daily];
+  }
+
+  function renderIdeas() {
+    if (!appData.ideas || appData.ideas.length === 0) {
+      refreshIdeas();
+      return;
+    }
+    const grid = document.getElementById('ideas-grid');
+    const display = buildIdeaDisplay();
+    grid.innerHTML = display.map((idea, i) => `
+      <div class="card bg-white rounded-2xl border ${idea.custom ? 'border-amber-200' : 'border-slate-200'} shadow-sm p-5">
+        <div class="flex items-start justify-between mb-3">
+          <span class="text-xs font-medium px-2.5 py-1 ${idea.custom ? 'bg-amber-50 text-amber-700' : 'bg-brand-50 text-brand-700'} rounded-lg">${idea.direction || '自定义'}</span>
+          <div class="flex items-center gap-2">
+            ${idea.custom ? '<span class="text-[10px] text-amber-600 font-medium">我的</span>' : ''}
+            <span class="text-xs text-slate-400">${idea.format || ''}</span>
+          </div>
+        </div>
+        <h4 class="font-semibold text-slate-800 mb-3 leading-snug">${idea.title}</h4>
+        <div class="flex items-center justify-between">
+          <span class="text-xs text-slate-500"><i class="fa-solid fa-store mr-1"></i>${idea.shop || '通用'}</span>
+          <div class="flex items-center gap-1.5">
+            ${idea.custom ? `<button onclick="deleteCustomIdea(${i})" class="text-xs px-2 py-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="删除我的灵感"><i class="fa-solid fa-trash-can"></i></button>` : ''}
+            <button onclick="useIdea(${i})" class="text-xs px-3 py-1.5 bg-slate-100 hover:bg-brand-100 text-slate-600 hover:text-brand-700 rounded-lg transition-colors">采用</button>
+          </div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function useIdea(index) {
+    const idea = buildIdeaDisplay()[index];
+    if (!idea) return;
+    appData.tasks.push({ text: `拍摄选题：${idea.title}（${idea.shop || '通用'}）`, done: false });
+    saveData(appData);
+    switchTab('daily');
+    renderTasks();
+  }
+
+  function deleteCustomIdea(index) {
+    const idea = buildIdeaDisplay()[index];
+    if (idea && idea.custom && idea.customIdx >= 0) {
+      if (confirm('确定删除这条我的灵感吗？')) {
+        appData.customIdeas.splice(idea.customIdx, 1);
+        saveData(appData);
+        renderIdeas();
+      }
+    }
+  }
+
+  // ============== 添加我的灵感 ==============
+  function openIdeaModal() {
+    document.getElementById('idea-title').value = '';
+    document.getElementById('idea-direction').value = '';
+    document.getElementById('idea-shop').value = '洞庭山官方旗舰店';
+    document.getElementById('idea-format').value = '15-30s';
+    document.getElementById('idea-modal').classList.remove('hidden');
+  }
+
+  function closeIdeaModal() {
+    document.getElementById('idea-modal').classList.add('hidden');
+  }
+
+  function saveCustomIdea() {
+    const title = document.getElementById('idea-title').value.trim();
+    if (!title) {
+      alert('请填写灵感标题');
+      return;
+    }
+    const direction = document.getElementById('idea-direction').value.trim() || '自定义';
+    const shop = document.getElementById('idea-shop').value;
+    const format = document.getElementById('idea-format').value;
+    appData.customIdeas = appData.customIdeas || [];
+    appData.customIdeas.push({ title, direction, shop, format });
+    saveData(appData);
+    closeIdeaModal();
+    renderIdeas();
+    showToast('已添加我的灵感 ✅', 'success');
+  }
+
+  // ================= 爆款热点 / 二创 =================
+  const hotExamples = [
+    { title: '全网都在挑战的 "喝水接力"', heat: 982, tag: '挑战赛', desc: '多人接力喝水的魔性视频，适合品牌号跟风。' },
+    { title: '夏天办公室沉浸式囤水', heat: 876, tag: '场景种草', desc: 'ASMR 开箱+整齐摆放，打工人共鸣强。' },
+    { title: '矿泉水泡茶的玄学测试', heat: 843, tag: '测评', desc: '不同水泡茶汤色/口感对比，知识感强。' },
+    { title: '宝妈必看：婴儿冲奶水怎么选', heat: 812, tag: '母婴', desc: '精准母婴人群，信任度要求高。' },
+    { title: '运动后喝冰水真的好吗？', heat: 765, tag: '健康科普', desc: '反常识观点，评论区互动高。' },
+    { title: '把家乡的水做成礼物', heat: 721, tag: '情感', desc: '地域情怀+送礼场景，适合高端线。' },
+    { title: '618 囤水清单来了', heat: 698, tag: '促销', desc: '节点大促，直接引导成交。' },
+    { title: '一瓶水能看出你的生活态度', heat: 654, tag: '情绪', desc: '生活方式类内容，适合品牌调性。' }
+  ];
+
+  function renderHotList() {
+    const list = document.getElementById('hot-list');
+    list.innerHTML = hotExamples.map((hot, i) => `
+      <div class="hot-item p-4 cursor-pointer" onclick="selectHot(${i})">
+        <div class="flex items-start gap-3">
+          <div class="w-8 h-8 rounded-lg ${i < 3 ? 'bg-orange-100 text-orange-600' : 'bg-slate-100 text-slate-500'} flex items-center justify-center text-sm font-bold flex-shrink-0">${i + 1}</div>
+          <div class="flex-1">
+            <div class="flex items-center justify-between mb-1">
+              <h4 class="font-medium text-slate-800 text-sm">${hot.title}</h4>
+              <span class="text-xs font-medium text-orange-500"><i class="fa-solid fa-fire mr-1"></i>${hot.heat}</span>
+            </div>
+            <p class="text-xs text-slate-500 mb-2">${hot.desc}</p>
+            <span class="text-xs px-2 py-0.5 bg-slate-100 text-slate-600 rounded">${hot.tag}</span>
+          </div>
+        </div>
+      </div>
+    `).join('');
+
+    const select = document.getElementById('selected-hot');
+    select.innerHTML = '<option value="">请选择要改编的热点</option>' + hotExamples.map((hot, i) => `<option value="${i}">${hot.title}</option>`).join('');
+  }
+
+  function selectHot(index) {
+    document.getElementById('selected-hot').value = index;
+    document.getElementById('selected-hot').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  function generateRewrite() {
+    const hotIndex = document.getElementById('selected-hot').value;
+    const shop = document.getElementById('shop-select').value;
+    const point = document.getElementById('selling-point').value.trim();
+
+    if (hotIndex === '') {
+      alert('请先选择一个热点');
+      return;
+    }
+
+    const hot = hotExamples[hotIndex];
+    const prodId = document.getElementById('product-select').value;
+    const prod = prodId ? getProd(prodId) : null;
+    const resultBox = document.getElementById('rewrite-result');
+    const content = document.getElementById('rewrite-content');
+
+    const hooks = [
+      `别再${hot.title.replace('全网都在挑战的 ', '').replace('的', '')}了，真正会喝水的人都在看这一点。`,
+      `最近${hot.title}很火，但没人告诉你，选错水等于白喝。`,
+      `${hot.title}我试了，结论只有一个：水和水真的不一样。`
+    ];
+    const hook = hooks[Math.floor(Math.random() * hooks.length)];
+
+    content.innerHTML = `
+      <div class="script-box p-4 rounded-xl">
+        <h4 class="font-semibold text-brand-800 mb-2 text-sm">🎯 改编方向</h4>
+        <p class="text-sm text-slate-700">原热点：<span class="font-medium">${hot.title}</span>（${hot.tag}）</p>
+        <p class="text-sm text-slate-700 mt-1">适配店铺：<span class="font-medium">${shop}</span></p>
+        ${prod ? `<p class="text-sm text-slate-700 mt-1">挂车商品：<span class="font-medium">${prod.name}（${prod.brand}）</span>${prod.price ? ' · 管控价 ' + prod.price : ''}${prod.activity ? ' · ' + prod.activity : ''}</p>` : ''}
+        <p class="text-sm text-slate-700 mt-1">核心卖点：<span class="font-medium">${point || (prod ? prod.sp : '天然好水 / 品质饮水')}</span></p>
+      </div>
+      <div>
+        <h4 class="font-semibold text-slate-800 mb-2 text-sm">⏱ 0-3 秒 黄金钩子</h4>
+        <p class="text-sm text-slate-700 bg-slate-50 p-3 rounded-lg">${hook}</p>
+      </div>
+      <div>
+        <h4 class="font-semibold text-slate-800 mb-2 text-sm">⏱ 3-15 秒 冲突/场景</h4>
+        <p class="text-sm text-slate-700 bg-slate-50 p-3 rounded-lg">画面：${shop}的产品入镜，与常见场景结合（办公室/厨房/后备箱）。<br>口播：很多人买水只看价格，但其实水源地、矿物质、pH 值才是关键。</p>
+      </div>
+      <div>
+        <h4 class="font-semibold text-slate-800 mb-2 text-sm">⏱ 15-30 秒 卖点可视化</h4>
+        <p class="text-sm text-slate-700 bg-slate-50 p-3 rounded-lg">展示 ${point || '天然水源'} 的差异化画面：水源地实拍 / 泡茶对比 / 宝宝饮水场景 / 运动后补水特写。每 5 秒切一个画面，保持节奏。</p>
+      </div>
+      <div>
+        <h4 class="font-semibold text-slate-800 mb-2 text-sm">⏱ 30-45 秒 结尾 CTA</h4>
+        <p class="text-sm text-slate-700 bg-slate-50 p-3 rounded-lg">口播：${prod ? `${prod.name.replace(/（.*?）|\(.*?\)/g, '')}就在左下角小黄车，${prod.activity ? prod.activity + '，' : ''}现在下单囤一箱慢慢喝。` : `${shop} 现在下单，链接就在左下角，囤一箱慢慢喝。`}<br>字幕：点击小黄车${prod && prod.price ? ' / 到手 ' + prod.price : ' / 限时优惠'} / 苏州本地发货</p>
+      </div>
+      <div>
+        <h4 class="font-semibold text-slate-800 mb-2 text-sm">🏷 建议标签</h4>
+        <div class="flex flex-wrap gap-2">
+          <span class="tag text-xs px-3 py-1 bg-slate-100 text-slate-600 rounded-full">#${shop.replace('官方旗舰店', '').replace('旗舰店', '')}</span>
+          <span class="tag text-xs px-3 py-1 bg-slate-100 text-slate-600 rounded-full">#矿泉水</span>
+          <span class="tag text-xs px-3 py-1 bg-slate-100 text-slate-600 rounded-full">#夏天喝水</span>
+          <span class="tag text-xs px-3 py-1 bg-slate-100 text-slate-600 rounded-full">#囤货</span>
+          <span class="tag text-xs px-3 py-1 bg-slate-100 text-slate-600 rounded-full">#${hot.tag}</span>
+        </div>
+      </div>
+    `;
+
+    resultBox.classList.remove('hidden');
+  }
+
+  function copyRewrite() {
+    const text = document.getElementById('rewrite-content').innerText;
+    navigator.clipboard.writeText(text).then(() => alert('已复制到剪贴板'));
+  }
+
+  function saveRewriteToMemo() {
+    const text = document.getElementById('rewrite-content').innerText;
+    appData.memo = (appData.memo || '') + '\n\n--- 二创脚本 ' + new Date().toLocaleString('zh-CN') + ' ---\n' + text;
+    saveData(appData);
+    alert('已加入备忘录');
+  }
+
+  // ================= 原创脚本工坊（选题灵感联动） =================
+  function initIdeaScript() {
+    const sel = document.getElementById('idea-select');
+    const display = buildIdeaDisplay();
+    const prev = sel.value;
+    sel.innerHTML = '<option value="">请选择灵感</option>' + display.map((idea, i) =>
+      `<option value="${i}">${idea.title}${idea.custom ? '（我的）' : ''} · ${idea.direction || '通用'}</option>`
+    ).join('');
+    if (prev && sel.querySelector(`option[value="${prev}"]`)) sel.value = prev;
+    populateIdeaProductSelect(document.getElementById('idea-shop-select').value);
+  }
+
+  function populateIdeaProductSelect(shop) {
+    const sel = document.getElementById('idea-product-select');
+    const list = PRODUCTS.filter(p => productShops(p).includes(shop));
+    sel.innerHTML = '<option value="">不指定商品（手填卖点）</option>' +
+      list.map(p => `<option value="${p.id}">${p.name}（${p.brand}）</option>`).join('');
+  }
+
+  function onIdeaShopChange() {
+    populateIdeaProductSelect(document.getElementById('idea-shop-select').value);
+    onIdeaProductChange();
+  }
+
+  function onIdeaProductChange() {
+    const id = document.getElementById('idea-product-select').value;
+    const meta = document.getElementById('idea-product-meta');
+    if (!id) {
+      meta.classList.add('hidden');
+      return;
+    }
+    const p = getProd(id);
+    document.getElementById('idea-selling-point').value = p.sp;
+    const parts = [];
+    if (p.price) parts.push('管控价：' + p.price);
+    if (p.activity) parts.push('活动：' + p.activity);
+    parts.push('在售：' + (productShops(p).map(s => s.replace('官方旗舰店', '官旗').replace('旗舰店', '')).join('、') || '待维护'));
+    meta.innerHTML = '<i class="fa-solid fa-circle-info mr-1 text-brand-500"></i>' + parts.join(' · ');
+    meta.classList.remove('hidden');
+  }
+
+  function generateOriginal() {
+    const ideaIdx = document.getElementById('idea-select').value;
+    const shop = document.getElementById('idea-shop-select').value;
+    const point = document.getElementById('idea-selling-point').value.trim();
+    if (ideaIdx === '') {
+      alert('请先选择一条灵感');
+      return;
+    }
+    const idea = buildIdeaDisplay()[parseInt(ideaIdx, 10)];
+    const prodId = document.getElementById('idea-product-select').value;
+    const prod = prodId ? getProd(prodId) : null;
+    const resultBox = document.getElementById('original-result');
+    const content = document.getElementById('original-content');
+
+    const hook = `「${idea.title}」——听起来是个老生常谈的话题，但真正把细节做对的人并不多。`;
+
+    content.innerHTML = `
+      <div class="script-box p-4 rounded-xl">
+        <h4 class="font-semibold text-brand-800 mb-2 text-sm">🎯 创作主题</h4>
+        <p class="text-sm text-slate-700">灵感：${idea.title}（${idea.direction || '通用'}）</p>
+        <p class="text-sm text-slate-700 mt-1">适配店铺：<span class="font-medium">${shop}</span></p>
+        ${prod ? `<p class="text-sm text-slate-700 mt-1">挂车商品：<span class="font-medium">${prod.name}（${prod.brand}）</span>${prod.price ? ' · 管控价 ' + prod.price : ''}${prod.activity ? ' · ' + prod.activity : ''}</p>` : ''}
+        <p class="text-sm text-slate-700 mt-1">核心卖点：<span class="font-medium">${point || (prod ? prod.sp : '天然好水 / 品质饮水')}</span></p>
+      </div>
+      <div>
+        <h4 class="font-semibold text-slate-800 mb-2 text-sm">⏱ 0-3 秒 黄金钩子</h4>
+        <p class="text-sm text-slate-700 bg-slate-50 p-3 rounded-lg">${hook}</p>
+      </div>
+      <div>
+        <h4 class="font-semibold text-slate-800 mb-2 text-sm">⏱ 3-20 秒 主题展开</h4>
+        <p class="text-sm text-slate-700 bg-slate-50 p-3 rounded-lg">画面：${shop}场景化呈现（厨房泡茶水 / 办公室补水 / 宝宝冲奶 / 运动后）。<br>口播：今天聊一个被忽略的细节——${point || '好水的标准不只是解渴'}。${shop}一直坚持做的是让每一口水都更放心。</p>
+      </div>
+      <div>
+        <h4 class="font-semibold text-slate-800 mb-2 text-sm">⏱ 20-35 秒 卖点可视化</h4>
+        <p class="text-sm text-slate-700 bg-slate-50 p-3 rounded-lg">展示 ${point || '天然水源'} 的差异化画面：水源地实拍 / 泡茶对比 / 冲泡奶粉 / 家庭囤水。每 5 秒一切，配合字幕点出关键信息。</p>
+      </div>
+      <div>
+        <h4 class="font-semibold text-slate-800 mb-2 text-sm">⏱ 35-45 秒 结尾 CTA</h4>
+        <p class="text-sm text-slate-700 bg-slate-50 p-3 rounded-lg">口播：${prod ? `${prod.name.replace(/（.*?）|\(.*?\)/g, '')}就在左下角小黄车，${prod.activity ? prod.activity + '，' : ''}现在下单囤一箱慢慢喝。` : `${shop} 现在下单，链接就在左下角，囤一箱慢慢喝。`}<br>字幕：点击小黄车${prod && prod.price ? ' / 到手 ' + prod.price : ' / 限时优惠'} / 苏州本地发货</p>
+      </div>
+      <div>
+        <h4 class="font-semibold text-slate-800 mb-2 text-sm">🏷 建议标签</h4>
+        <div class="flex flex-wrap gap-2">
+          <span class="tag text-xs px-3 py-1 bg-slate-100 text-slate-600 rounded-full">#${shop.replace('官方旗舰店', '').replace('旗舰店', '')}</span>
+          <span class="tag text-xs px-3 py-1 bg-slate-100 text-slate-600 rounded-full">#${idea.direction || '好水'}</span>
+          <span class="tag text-xs px-3 py-1 bg-slate-100 text-slate-600 rounded-full">#矿泉水</span>
+          <span class="tag text-xs px-3 py-1 bg-slate-100 text-slate-600 rounded-full">#喝水日常</span>
+          <span class="tag text-xs px-3 py-1 bg-slate-100 text-slate-600 rounded-full">#囤货</span>
+        </div>
+      </div>
+    `;
+    resultBox.classList.remove('hidden');
+  }
+
+  function copyOriginal() {
+    const text = document.getElementById('original-content').innerText;
+    navigator.clipboard.writeText(text).then(() => alert('已复制到剪贴板'));
+  }
+
+  function saveOriginalToMemo() {
+    const text = document.getElementById('original-content').innerText;
+    appData.memo = (appData.memo || '') + '\n\n--- 原创脚本 ' + new Date().toLocaleString('zh-CN') + ' ---\n' + text;
+    saveData(appData);
+    alert('已加入备忘录');
+  }
+
+  function useOriginalAsTask() {
+    const ideaIdx = document.getElementById('idea-select').value;
+    const idea = ideaIdx !== '' ? buildIdeaDisplay()[parseInt(ideaIdx, 10)] : null;
+    const title = idea ? idea.title : '原创脚本';
+    appData.tasks.push({ text: `拍摄原创：${title}`, done: false });
+    saveData(appData);
+    switchTab('daily');
+    renderTasks();
+  }
+
+  // ================= 在售商品库 =================
+  // 数据来源：店铺在售品牌和品牌在售商品.xlsx（2026-07-28 导入）
+  const SHOP_BRANDS = {
+    '洞庭山官方旗舰店': ['江南贡泉', '洞庭山泉', '洞庭山', '蘇泉', '虎丘', '碧螺泉', '锌益'],
+    '洞庭山泉官方旗舰店': ['洞庭山泉', '蘇泉'],
+    '蘇泉水饮旗舰店': ['蘇泉'],
+    '虎丘官方旗舰店': ['虎丘'],
+    '好水严选': []  // 源表中未提供该店品牌，可在下方表格自行维护
+  };
+
+  const RAW_PRODUCTS = [
+    ['洞庭山泉', 'PET洞山泉12.95L'], ['洞庭山泉', 'PET洞山泉15L'], ['洞庭山泉', 'PET洞山泉19L'],
+    ['洞庭山泉', 'PET洞山泉19L水票'], ['洞庭山泉', '洞山泉19L*6水票'], ['洞庭山泉', '洞山泉5L*4—膜包'],
+    ['洞庭山泉', '洞山泉碱矿泉300mL*20(膜)'], ['洞庭山泉', '洞山泉森动苏打水500ml*15(膜)'],
+    ['洞庭山泉', '红运瓶380ML*24(箱装)'], ['洞庭山泉', '碱矿泉380ml*15（箱装）'], ['洞庭山泉', '碱矿泉550ML*24—膜包'],
+    ['洞庭山', 'PET洞天泉12.8L'], ['洞庭山', 'PET洞天泉19L'], ['洞庭山', '洞天泉17L'],
+    ['洞庭山', '洞天泉380ML*24（箱装）'], ['洞庭山', '洞天泉550ML*24（箱装）'], ['洞庭山', '洞天泉5L*4—膜包'],
+    ['洞庭山', '深矿泉550ML*1'], ['洞庭山', '深矿泉550ML*24—膜包'], ['洞庭山', '贴牌洞天泉320ML*24'],
+    ['江南贡泉', 'PET贡山泉12L'], ['江南贡泉', 'PET贡山泉19L'], ['江南贡泉', 'PET贡天泉15L'],
+    ['江南贡泉', '贡矿泉350ML*24（箱装）'], ['江南贡泉', '贡矿泉570ML*24（箱装）'],
+    ['江南贡泉', '贡泉泡茶水4.5L*4（箱装）'], ['江南贡泉', '贡山泉320ML*24（箱装）'],
+    ['江南贡泉', '贡山泉4.5L*4（箱装）'], ['江南贡泉', '贡山泉520ML*24（箱装）'],
+    ['江南贡泉', '贡天泉168ML*24（箱装）'], ['江南贡泉', '贡天泉4.5L*4（箱装）'],
+    ['江南贡泉', '贡天泉4.5L*4+万泓'], ['江南贡泉', '黑金苏打450ML*24（箱装）'],
+    ['江南贡泉', '江南名泉380ml*24'], ['江南贡泉', '金贡720ml'],
+    ['江南贡泉', '绿苏打450ML*24（箱装）'], ['江南贡泉', '绿苏打450ML*24—膜包'],
+    ['虎丘', 'PET虎名泉15L'], ['虎丘', 'PET虎名泉19L'], ['虎丘', 'PET虎山泉19L'],
+    ['虎丘', '虎纯18.9L'], ['虎丘', '虎名泉5L*4—膜包'], ['虎丘', '虎丘优活18.9L'],
+    ['蘇泉', 'PET蘇泉15L'], ['蘇泉', 'PET蘇泉19L'], ['蘇泉', '蘇泉550ML*24—膜包'], ['蘇泉', '蘇泉5L*4—膜包'],
+    ['西施泉', 'PET西施泉15L'], ['西施泉', '西施泉6.5L*4-膜包'],
+    ['江南名泉', 'pet硒水12.8L'],
+    ['碧螺泉', '碧螺泉4.5L*4（箱装）'],
+    ['锌益', '锌益1L*12（箱装）'], ['锌益', '锌益1L*6（箱装）'], ['锌益', '锌益268ml*20（箱装）'], ['锌益', '锌益4.5L*4（箱装）']
+  ];
+
+  // 根据商品名自动预填卖点（可在表格中修改，修改后以你的为准）
+  function defaultSp(name) {
+    if (name.includes('水票')) return '囤票更划算，按需兑换，配送到家';
+    if (name.includes('苏打')) return '0糖0卡苏打水，佐餐解腻，清爽气泡口感';
+    if (name.includes('泡茶')) return '专为泡茶设计的低矿化度水，激发茶香更甘甜';
+    if (name.includes('碱矿泉')) return '天然弱碱性矿泉，泡茶冲饮更甘甜';
+    if (name.includes('锌益')) return '富锌天然水，儿童青少年成长补锌之选';
+    if (name.includes('硒水')) return '富硒水源，补充健康微量元素';
+    if (name.includes('深矿泉')) return '深层矿泉，矿物质丰富，口感清冽';
+    if (name.includes('金贡')) return '高端瓶装水，宴请送礼有面子';
+    if (name.includes('红运瓶')) return '红运包装讨彩头，节庆宴席用水';
+    if (/19L|18\.9L|17L|15L|12\.?\d*L/i.test(name) && name.toUpperCase().includes('PET')) return '大桶足量，家庭/办公囤水首选，苏州本地水源新鲜直达';
+    if (/5L\*4|4\.5L\*4|6\.5L\*4/.test(name)) return '一提4桶，厨房煲汤煮饭泡茶好水，搬取方便';
+    if (/ML|ml/.test(name)) return '便携瓶装，办公户外随手喝，整箱囤更实惠';
+    return '苏州天然好水，水源地直发';
+  }
+
+  const PRODUCTS = RAW_PRODUCTS.map(([brand, name], i) => ({ id: 'p' + i, brand, name, sp: defaultSp(name) }));
+
+  function productShops(p) {
+    return Object.keys(SHOP_BRANDS).filter(shop => SHOP_BRANDS[shop].includes(p.brand));
+  }
+
+  function getProd(id) {
+    const base = PRODUCTS.find(p => p.id === id);
+    if (!base) return null;
+    const edit = (appData.productEdits || {})[id] || {};
+    return { ...base, price: edit.price || '', activity: edit.activity || '', sp: edit.sp !== undefined && edit.sp !== '' ? edit.sp : base.sp };
+  }
+
+  function saveProdField(id, field, value) {
+    if (!appData.productEdits) appData.productEdits = {};
+    if (!appData.productEdits[id]) appData.productEdits[id] = {};
+    appData.productEdits[id][field] = value.trim();
+    saveData(appData);
+  }
+
+  function initProductFilters() {
+    const shopSel = document.getElementById('prod-shop-filter');
+    if (shopSel.options.length <= 1) {
+      Object.keys(SHOP_BRANDS).forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s; opt.textContent = s;
+        shopSel.appendChild(opt);
+      });
+      const brandSel = document.getElementById('prod-brand-filter');
+      [...new Set(PRODUCTS.map(p => p.brand))].forEach(b => {
+        const opt = document.createElement('option');
+        opt.value = b; opt.textContent = b;
+        brandSel.appendChild(opt);
+      });
+    }
+  }
+
+  function renderProducts() {
+    initProductFilters();
+    const shopF = document.getElementById('prod-shop-filter').value;
+    const brandF = document.getElementById('prod-brand-filter').value;
+    const kw = document.getElementById('prod-search').value.trim().toLowerCase();
+
+    // 店铺概览卡片
+    document.getElementById('prod-shop-summary').innerHTML = Object.keys(SHOP_BRANDS).map(shop => {
+      const brands = SHOP_BRANDS[shop];
+      const count = PRODUCTS.filter(p => brands.includes(p.brand)).length;
+      const active = shopF === shop;
+      return `<div onclick="document.getElementById('prod-shop-filter').value='${active ? '' : shop}';renderProducts()" class="cursor-pointer rounded-xl p-3 border transition-all ${active ? 'bg-brand-600 border-brand-600 text-white shadow-md' : 'bg-white border-slate-200 hover:border-brand-300'}">
+        <p class="text-xs ${active ? 'text-brand-100' : 'text-slate-500'} truncate">${shop}</p>
+        <p class="text-lg font-bold mt-0.5">${count} <span class="text-xs font-normal">款</span></p>
+        <p class="text-xs ${active ? 'text-brand-100' : 'text-slate-400'} truncate">${brands.length ? brands.join('、') : '待维护'}</p>
+      </div>`;
+    }).join('');
+
+    let list = PRODUCTS.map(p => getProd(p.id));
+    if (shopF) list = list.filter(p => SHOP_BRANDS[shopF].includes(p.brand));
+    if (brandF) list = list.filter(p => p.brand === brandF);
+    if (kw) list = list.filter(p => (p.name + p.brand + p.sp).toLowerCase().includes(kw));
+
+    const body = document.getElementById('prod-table-body');
+    if (list.length === 0) {
+      body.innerHTML = '<tr><td colspan="7" class="px-4 py-10 text-center text-slate-400 text-sm">没有符合条件的商品</td></tr>';
+      return;
+    }
+    body.innerHTML = list.map(p => {
+      const shops = productShops(p);
+      return `<tr class="hover:bg-slate-50 transition-colors">
+        <td class="px-4 py-3 font-medium text-slate-800">${p.name}</td>
+        <td class="px-4 py-3"><span class="text-xs px-2 py-1 bg-brand-50 text-brand-700 rounded-lg">${p.brand}</span></td>
+        <td class="px-4 py-3 text-xs text-slate-600 leading-relaxed max-w-[180px]">${shops.length ? shops.map(s => s.replace('官方旗舰店', '官旗').replace('旗舰店', '')).join('<br>') : '<span class="text-slate-300">—</span>'}</td>
+        <td class="px-4 py-3"><input value="${escapeAttr(p.price)}" placeholder="¥ —" onchange="saveProdField('${p.id}','price',this.value)" class="w-24 px-2 py-1.5 text-sm bg-slate-50 border border-transparent hover:border-slate-200 focus:border-brand-500 focus:bg-white rounded-lg transition-colors"></td>
+        <td class="px-4 py-3"><input value="${escapeAttr(p.activity)}" placeholder="点击填写" onchange="saveProdField('${p.id}','activity',this.value)" class="w-32 px-2 py-1.5 text-sm bg-slate-50 border border-transparent hover:border-slate-200 focus:border-brand-500 focus:bg-white rounded-lg transition-colors"></td>
+        <td class="px-4 py-3"><input value="${escapeAttr(p.sp)}" onchange="saveProdField('${p.id}','sp',this.value)" class="w-full min-w-[220px] px-2 py-1.5 text-sm bg-slate-50 border border-transparent hover:border-slate-200 focus:border-brand-500 focus:bg-white rounded-lg transition-colors"></td>
+        <td class="px-4 py-3"><button onclick="goRewrite('${p.id}')" class="text-xs px-3 py-1.5 bg-brand-50 hover:bg-brand-100 text-brand-700 rounded-lg whitespace-nowrap transition-colors"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i>去二创</button></td>
+      </tr>`;
+    }).join('');
+  }
+
+  function escapeAttr(text) {
+    return String(text || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+  }
+
+  // 从商品表跳转到二创
+  function goRewrite(id) {
+    const p = getProd(id);
+    const shops = productShops(p);
+    switchTab('trending');
+    if (shops.length) document.getElementById('shop-select').value = shops[0];
+    populateProductSelect();
+    document.getElementById('product-select').value = id;
+    onProductChange();
+  }
+
+  // ============ 二创模块 与 商品库 联动 ============
+  function populateProductSelect() {
+    const shop = document.getElementById('shop-select').value;
+    const sel = document.getElementById('product-select');
+    const prev = sel.value;
+    const brands = SHOP_BRANDS[shop] || [];
+    let list = PRODUCTS.filter(p => brands.includes(p.brand));
+    if (list.length === 0) list = PRODUCTS; // 好水严选等无品牌数据时显示全部
+    sel.innerHTML = '<option value="">不指定商品（手填卖点）</option>' + list.map(p => `<option value="${p.id}">${p.name}（${p.brand}）</option>`).join('');
+    if (list.some(p => p.id === prev)) sel.value = prev;
+  }
+
+  function onShopChange() {
+    populateProductSelect();
+    onProductChange();
+  }
+
+  function onProductChange() {
+    const id = document.getElementById('product-select').value;
+    const meta = document.getElementById('product-meta');
+    if (!id) {
+      meta.classList.add('hidden');
+      return;
+    }
+    const p = getProd(id);
+    document.getElementById('selling-point').value = p.sp;
+    const parts = [];
+    if (p.price) parts.push('管控价：' + p.price);
+    if (p.activity) parts.push('活动：' + p.activity);
+    parts.push('在售：' + (productShops(p).map(s => s.replace('官方旗舰店', '官旗').replace('旗舰店', '')).join('、') || '待维护'));
+    meta.innerHTML = '<i class="fa-solid fa-circle-info mr-1 text-brand-500"></i>' + parts.join(' · ');
+    meta.classList.remove('hidden');
+  }
+
+  // ================= 内容复盘 =================
+  function fillReviewDefaults() {
+    const d = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    const today = d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+    const nowLocal = today + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+    const pd = document.getElementById('rev-pubdate');
+    if (pd && !pd.value) pd.value = today;
+    const et = document.getElementById('rev-entertime');
+    if (et && !et.value) et.value = nowLocal;
+  }
+
+  function generateReview() {
+    const title = document.getElementById('rev-title').value.trim() || '未命名视频';
+    const play = parseFloat(document.getElementById('rev-play').value) || 0;
+    const like = parseFloat(document.getElementById('rev-like').value) || 0;
+    const comment = parseFloat(document.getElementById('rev-comment').value) || 0;
+    const share = parseFloat(document.getElementById('rev-share').value) || 0;
+    const finish = parseFloat(document.getElementById('rev-finish').value) || 0;
+    const s5 = parseFloat(document.getElementById('rev-5s').value) || 0;
+    const ctr = parseFloat(document.getElementById('rev-ctr').value) || 0;
+    const cvr = parseFloat(document.getElementById('rev-cvr').value) || 0;
+    const roi = parseFloat(document.getElementById('rev-roi').value) || 0;
+    const cost = parseFloat(document.getElementById('rev-cost').value) || 0;
+    const pubDate = document.getElementById('rev-pubdate').value || '';
+    const enterTime = document.getElementById('rev-entertime').value || '';
+
+    // 计算互动率
+    const engagementRate = play > 0 ? ((like + comment + share) / play * 100).toFixed(2) : 0;
+    const likeRate = play > 0 ? (like / play * 100).toFixed(2) : 0;
+
+    let score = 0;
+    let diagnosis = [];
+    let suggestions = [];
+
+    // 完播率评分
+    if (finish >= 30) { score += 30; }
+    else if (finish >= 20) { score += 20; diagnosis.push('完播率中等，中段可能有拖沓。'); suggestions.push('压缩 5-15 秒的非核心画面，加快节奏。'); }
+    else if (finish > 0) { score += 10; diagnosis.push('完播率偏低，视频节奏或卖点呈现有问题。'); suggestions.push('重新设计前 3 秒钩子，每 5 秒给一个新刺激。'); }
+
+    // 5秒完播
+    if (s5 >= 50) { score += 25; }
+    else if (s5 >= 35) { score += 15; diagnosis.push('5 秒完播一般，开场吸引力不足。'); suggestions.push('开头用强冲突/反常识/利益点，前 3 秒不要介绍品牌。'); }
+    else if (s5 > 0) { score += 5; diagnosis.push('5 秒完播很低，开头没有留住人。'); suggestions.push('重拍开头：用痛点提问、震撼画面或数字冲突。'); }
+
+    // CTR
+    if (ctr >= 3) { score += 25; }
+    else if (ctr >= 1.5) { score += 15; diagnosis.push('CTR 一般，封面/标题/前 3 秒点击欲望不足。'); suggestions.push('封面加大字体和人物情绪；标题前 10 个字要有冲突或利益。'); }
+    else if (ctr > 0) { score += 5; diagnosis.push('CTR 偏低，素材点击吸引力弱。'); suggestions.push('参考爆款热点的标题和封面形式做 A/B 测试。'); }
+
+    // CVR
+    if (cvr >= 2) { score += 20; }
+    else if (cvr >= 0.8) { score += 10; diagnosis.push('CVR 一般，卖点或购买指令不够清晰。'); suggestions.push('结尾 CTA 更明确：限时、限量、立即拍；产品链接前 5 秒不要出现。'); }
+    else if (cvr > 0) { score += 5; diagnosis.push('CVR 低，流量来了但转化差。'); suggestions.push('检查商品详情页、价格、评价；视频里强化信任背书和促销信息。'); }
+
+    // ROI
+    if (roi >= 2) { score += 10; }
+    else if (roi > 0) { diagnosis.push('ROI 未达 2，需要优化投放人群或素材。'); suggestions.push('降低通投比例，测试精准人群：母婴、运动、茶饮爱好者。'); }
+
+    if (diagnosis.length === 0) {
+      diagnosis.push('整体数据健康，具备放量潜力。');
+      suggestions.push('可小幅加预算测试；同时复制脚本结构做同类延展。');
+    }
+
+    const report = {
+      title, play, like, comment, share, finish, s5, ctr, cvr, roi, cost,
+      pubDate, enterTime,
+      engagementRate, likeRate, score, diagnosis, suggestions,
+      date: new Date().toLocaleString('zh-CN')
+    };
+
+    appData.reviews.unshift(report);
+    saveData(appData);
+
+    renderReviewReport(report);
+    renderReviewHistory();
+  }
+
+  function renderReviewReport(report) {
+    const resultBox = document.getElementById('review-result');
+    const content = document.getElementById('review-content');
+
+    let scoreColor = report.score >= 80 ? 'text-green-600' : report.score >= 60 ? 'text-yellow-600' : 'text-red-600';
+    let scoreBg = report.score >= 80 ? 'bg-green-50' : report.score >= 60 ? 'bg-yellow-50' : 'bg-red-50';
+
+    content.innerHTML = `
+      <div class="text-sm text-slate-500 flex flex-wrap gap-x-5 gap-y-1 mb-3">
+        ${report.pubDate ? `<span>📅 发布日期：${report.pubDate}</span>` : ''}
+        ${report.enterTime ? `<span>🕒 录入时间：${report.enterTime.replace('T', ' ')}</span>` : ''}
+      </div>
+      <div class="flex items-center justify-between ${scoreBg} rounded-xl p-4">
+        <div>
+          <p class="text-sm text-slate-600">综合评分</p>
+          <p class="text-3xl font-bold ${scoreColor}">${report.score} / 100</p>
+        </div>
+        <div class="text-right text-sm text-slate-600">
+          <p>互动率：${report.engagementRate}%</p>
+          <p>点赞率：${report.likeRate}%</p>
+        </div>
+      </div>
+      <div>
+        <h4 class="font-semibold text-slate-800 mb-2 text-sm">📊 数据概览</h4>
+        <div class="grid grid-cols-2 gap-3 text-sm">
+          <div class="bg-slate-50 p-3 rounded-lg"><span class="text-slate-500">播放量</span><p class="font-medium">${report.play.toLocaleString()}</p></div>
+          <div class="bg-slate-50 p-3 rounded-lg"><span class="text-slate-500">完播率</span><p class="font-medium">${report.finish}%</p></div>
+          <div class="bg-slate-50 p-3 rounded-lg"><span class="text-slate-500">CTR</span><p class="font-medium">${report.ctr}%</p></div>
+          <div class="bg-slate-50 p-3 rounded-lg"><span class="text-slate-500">CVR</span><p class="font-medium">${report.cvr}%</p></div>
+          <div class="bg-slate-50 p-3 rounded-lg"><span class="text-slate-500">ROI</span><p class="font-medium">${report.roi}</p></div>
+          <div class="bg-slate-50 p-3 rounded-lg"><span class="text-slate-500">千川消耗</span><p class="font-medium">¥${report.cost.toLocaleString()}</p></div>
+        </div>
+      </div>
+      <div>
+        <h4 class="font-semibold text-slate-800 mb-2 text-sm">🔍 问题诊断</h4>
+        <ul class="space-y-2">
+          ${report.diagnosis.map(d => `<li class="text-sm text-slate-700 bg-slate-50 p-3 rounded-lg"><i class="fa-solid fa-circle-exclamation text-orange-500 mr-2"></i>${d}</li>`).join('')}
+        </ul>
+      </div>
+      <div>
+        <h4 class="font-semibold text-slate-800 mb-2 text-sm">💡 下次优化建议</h4>
+        <ul class="space-y-2">
+          ${report.suggestions.map(s => `<li class="text-sm text-slate-700 bg-brand-50 p-3 rounded-lg"><i class="fa-solid fa-lightbulb text-brand-600 mr-2"></i>${s}</li>`).join('')}
+        </ul>
+      </div>
+    `;
+
+    resultBox.classList.remove('hidden');
+  }
+
+  function renderReviewHistory() {
+    const container = document.getElementById('review-history');
+    if (appData.reviews.length === 0) {
+      container.innerHTML = '<p class="text-sm text-slate-400 text-center py-8">暂无复盘记录</p>';
+      return;
+    }
+    container.innerHTML = appData.reviews.map((r, i) => `
+      <div class="p-4 bg-slate-50 rounded-xl cursor-pointer hover:bg-slate-100 transition-colors" onclick="viewReview(${i})">
+        <div class="flex items-center justify-between mb-1">
+          <h4 class="font-medium text-slate-800 text-sm truncate max-w-[200px]">${r.title}</h4>
+          <span class="text-xs text-slate-400">${r.enterTime ? '录入 ' + r.enterTime.replace('T', ' ') : (r.date.split(' ')[0])}${r.pubDate ? ' · 发布 ' + r.pubDate : ''}</span>
+        </div>
+        <div class="flex items-center gap-3 text-xs text-slate-500">
+          <span>ROI ${r.roi}</span>
+          <span>完播 ${r.finish}%</span>
+          <span>CTR ${r.ctr}%</span>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function viewReview(index) {
+    renderReviewReport(appData.reviews[index]);
+  }
+
+  // ================= 备忘录 =================
+  let memoTimer;
+  function saveMemo() {
+    clearTimeout(memoTimer);
+    const status = document.getElementById('memo-status');
+    status.textContent = '保存中...';
+    status.classList.add('text-brand-600');
+
+    memoTimer = setTimeout(() => {
+      appData.memo = document.getElementById('memo-text').value;
+      saveData(appData);
+      status.textContent = '已自动保存';
+      status.classList.remove('text-brand-600');
+    }, 500);
+  }
+
+  // ================= 工具函数 =================
+  function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  function exportData() {
+    const blob = new Blob([JSON.stringify(appData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'dy-workbench-data-' + new Date().toISOString().slice(0, 10) + '.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function importData() {
+    const el = document.getElementById('import-file');
+    if (el) el.click();
+  }
+
+  function handleImport(file) {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const d = JSON.parse(reader.result);
+        if (confirm('导入将覆盖当前工作台数据，确定继续？建议先导出备份。')) {
+          appData = d;
+          saveData(appData);
+          renderTasks();
+          renderIdeas();
+          renderReviewHistory();
+          document.getElementById('memo-text').value = appData.memo || '';
+          alert('数据导入成功！');
+        }
+      } catch (e) {
+        alert('文件格式错误，请选择之前导出的 JSON 备份。');
+      }
+      document.getElementById('import-file').value = '';
+    };
+    reader.readAsText(file);
+  }
+
+  // ================= 跨设备同步（链接/扫码） =================
+  function bytesToB64UrlSafe(bytes) {
+    let bin = '';
+    const chunk = 0x8000;
+    for (let i = 0; i < bytes.length; i += chunk) {
+      bin += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
+    }
+    return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  }
+
+  function b64UrlSafeToBytes(s) {
+    s = s.replace(/-/g, '+').replace(/_/g, '/');
+    while (s.length % 4) s += '=';
+    const bin = atob(s);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return bytes;
+  }
+
+  async function gzipBytes(bytes) {
+    const cs = new CompressionStream('gzip');
+    const writer = cs.writable.getWriter();
+    writer.write(bytes);
+    writer.close();
+    const buf = await new Response(cs.readable).arrayBuffer();
+    return new Uint8Array(buf);
+  }
+
+  async function gunzipBytes(bytes) {
+    const ds = new DecompressionStream('gzip');
+    const writer = ds.writable.getWriter();
+    writer.write(bytes);
+    writer.close();
+    const buf = await new Response(ds.readable).arrayBuffer();
+    return new Uint8Array(buf);
+  }
+
+  async function copyToClipboard(text) {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch (e) {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); } catch (_) {}
+      document.body.removeChild(ta);
+    }
+  }
+
+  async function generateSyncLink() {
+    const json = JSON.stringify(appData);
+    const bytes = new TextEncoder().encode(json);
+    let payload;
+    try {
+      const gz = await gzipBytes(bytes);
+      payload = 'g' + bytesToB64UrlSafe(gz);
+    } catch (e) {
+      payload = 'r' + bytesToB64UrlSafe(bytes);
+    }
+    const url = location.origin + location.pathname + location.search + '#d=' + payload;
+    if (url.length > 30000) {
+      alert('当前数据量较大，链接同步可能超长。建议改用「导出数据」生成 JSON 文件，在另一台设备用「导入数据」载入。');
+      return;
+    }
+    document.getElementById('sync-url').value = url;
+    const qrBox = document.getElementById('qr-box');
+    qrBox.innerHTML = '';
+    try {
+      const qr = qrcode(0, 'M');
+      qr.addData(url);
+      qr.make();
+      qrBox.innerHTML = qr.createImgTag(5, 8);
+    } catch (e) {
+      qrBox.innerHTML = '<p class="text-xs text-slate-400">二维码生成失败，请直接复制链接</p>';
+    }
+    document.getElementById('sync-modal').classList.remove('hidden');
+    await copyToClipboard(url);
+    const tip = document.getElementById('sync-copy-tip');
+    if (tip) tip.textContent = '链接已自动复制到剪贴板';
+    showToast('已生成推送链接并复制 ✅ 用手机扫码或打开链接，最新数据自动同步到手机', 'success');
+  }
+
+  let _toastTimer = null;
+  function showToast(msg, type) {
+    let box = document.getElementById('wb-toast');
+    if (!box) {
+      box = document.createElement('div');
+      box.id = 'wb-toast';
+      box.className = 'fixed left-1/2 -translate-x-1/2 top-5 z-[60] px-4 py-2.5 rounded-xl text-sm font-medium shadow-lg transition-all duration-300 opacity-0 pointer-events-none';
+      document.body.appendChild(box);
+    }
+    const colors = type === 'success'
+      ? 'bg-emerald-600 text-white'
+      : type === 'warn' ? 'bg-amber-500 text-white' : 'bg-slate-800 text-white';
+    box.className = box.className.replace(/bg-\S+ text-\S+/g, '').trim() + ' ' + colors;
+    box.textContent = msg;
+    requestAnimationFrame(() => {
+      box.classList.remove('opacity-0');
+      box.classList.add('opacity-100');
+    });
+    if (_toastTimer) clearTimeout(_toastTimer);
+    _toastTimer = setTimeout(() => {
+      box.classList.add('opacity-0');
+      box.classList.remove('opacity-100');
+    }, 3500);
+  }
+
+  function copySyncUrl() {
+    const url = document.getElementById('sync-url').value;
+    copyToClipboard(url).then(() => {
+      const tip = document.getElementById('sync-copy-tip');
+      if (tip) tip.textContent = '已复制';
+    });
+  }
+
+  // 移动端：点击感叹号切换 tooltip 显示（阻止冒泡避免触发按钮）
+  document.addEventListener('click', (e) => {
+    const tip = e.target.closest('.info-tip');
+    if (tip) {
+      e.preventDefault();
+      e.stopPropagation();
+      document.querySelectorAll('.info-tip.active').forEach(t => { if (t !== tip) t.classList.remove('active'); });
+      tip.classList.toggle('active');
+      return;
+    }
+    if (!e.target.closest('.info-tip')) {
+      document.querySelectorAll('.info-tip.active').forEach(t => t.classList.remove('active'));
+    }
+  });
+
+  function closeSyncModal() {
+    document.getElementById('sync-modal').classList.add('hidden');
+  }
+
+  async function tryLoadFromHash() {
+    const m = location.hash.match(/[#&]d=([^&]+)/);
+    if (!m) return false;
+    const payload = decodeURIComponent(m[1]);
+    const prefix = payload[0];
+    const body = payload.slice(1);
+    try {
+      let json;
+      if (prefix === 'g') {
+        const bytes = b64UrlSafeToBytes(body);
+        const gz = await gunzipBytes(bytes);
+        json = new TextDecoder().decode(gz);
+      } else {
+        const bytes = b64UrlSafeToBytes(body);
+        json = new TextDecoder().decode(bytes);
+      }
+      const d = JSON.parse(json);
+      if (confirm('检测到同步链接携带的数据，是否载入并覆盖当前工作台数据？')) {
+        appData = d;
+        saveData(appData);
+        renderTasks();
+        renderIdeas();
+        renderReviewHistory();
+        const memoEl = document.getElementById('memo-text');
+        if (memoEl) memoEl.value = appData.memo || '';
+        alert('已从同步链接载入最新数据。');
+      }
+    } catch (e) {
+      console.error('sync load error', e);
+    }
+    history.replaceState(null, '', location.pathname + location.search);
+    return true;
+  }
+
+  function clearAllData() {
+    if (confirm('确定要清空所有数据吗？此操作不可恢复。')) {
+      localStorage.removeItem(STORAGE_KEY);
+      appData = { tasks: [], ideas: [], customIdeas: [], reviews: [], memo: '', lastDate: new Date().toDateString() };
+      renderTasks();
+      renderIdeas();
+      renderReviewHistory();
+      document.getElementById('memo-text').value = '';
+      document.getElementById('review-result').classList.add('hidden');
+      document.getElementById('rewrite-result').classList.add('hidden');
+    }
+  }
+
+  // ================= 初始化 =================
+  document.addEventListener('DOMContentLoaded', async () => {
+    await tryLoadFromHash();
+    updateDate();
+    renderTasks();
+    // 如果是新的一天，自动刷新灵感
+    if (appData.lastDate !== new Date().toDateString()) {
+      appData.lastDate = new Date().toDateString();
+      appData.ideas = [];
+      saveData(appData);
+    }
+    // 每日提醒轮换
+    const tips = [
+      '黄金 3 秒决定生死，前 3 秒别介绍产品，先给冲突或利益。',
+      '一条视频只讲一个核心卖点，不要把所有卖点塞进去。',
+      '每 5 秒必须给用户一个新刺激：新信息 / 新画面 / 新冲突。',
+      '完播率 > 点赞 > 评论 > 转发 > 收藏，先保完播。',
+      '评论区是素材的第二轮生命，置顶评论引导互动。'
+    ];
+    document.getElementById('daily-tip').textContent = tips[new Date().getDay() % tips.length];
+  });
+</script>
+
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('./sw.js').then(function (reg) {
+        reg.addEventListener('updatefound', function () {
+          const newWorker = reg.installing;
+          newWorker.addEventListener('statechange', function () {
+            if (newWorker.state === 'activated') {
+              const banner = document.getElementById('update-banner');
+              if (banner) banner.classList.remove('hidden');
+            }
+          });
+        });
+      }).catch(function () {});
+    });
+  }
+</script>
+
+<!-- 跨设备同步弹窗 -->
+<div id="sync-modal" class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onclick="if(event.target===this)closeSyncModal()">
+  <div class="bg-white rounded-2xl p-6 max-w-sm w-full text-center shadow-xl">
+    <h3 class="text-lg font-bold text-slate-800 mb-1"><i class="fa-solid fa-mobile-screen mr-1 text-brand-600"></i> 一键推送到手机</h3>
+    <p class="text-xs text-slate-500 mb-4">当前数据已打包进下方链接，按下面任一种方式在手机上打开即可自动同步。</p>
+    <div id="qr-box" class="flex justify-center mb-4 min-h-[120px] items-center"></div>
+    <p class="text-[11px] text-slate-400 mb-3 leading-relaxed">① 手机扫上方二维码　② 或点「复制」把链接发到微信/飞书，手机打开链接　③ 手机端打开后点确认即完成同步</p>
+    <div class="flex gap-2">
+      <input id="sync-url" class="flex-1 px-3 py-2 text-xs border border-slate-200 rounded-lg bg-slate-50" readonly>
+      <button onclick="copySyncUrl()" class="px-3 py-2 text-sm bg-brand-600 text-white rounded-lg whitespace-nowrap">复制</button>
+    </div>
+    <p id="sync-copy-tip" class="text-[11px] text-brand-600 mt-2 h-4"></p>
+    <button onclick="closeSyncModal()" class="mt-3 text-sm text-slate-500 hover:text-slate-700">关闭</button>
+  </div>
+</div>
+
+<!-- 添加我的灵感弹窗 -->
+<div id="idea-modal" class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onclick="if(event.target===this)closeIdeaModal()">
+  <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-xl">
+    <h3 class="text-lg font-bold text-slate-800 mb-4"><i class="fa-solid fa-lightbulb mr-2 text-amber-500"></i>添加我的灵感</h3>
+    <div class="space-y-3">
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1.5">灵感标题 <span class="text-red-400">*</span></label>
+        <input id="idea-title" type="text" placeholder="例如：冬天热饮配什么水" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500">
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1.5">方向 / 类型</label>
+          <input id="idea-direction" type="text" placeholder="场景种草 / 知识科普" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1.5">建议时长</label>
+          <select id="idea-format" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500">
+            <option value="15-30s">15-30s</option>
+            <option value="30-45s">30-45s</option>
+            <option value="45-60s">45-60s</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1.5">适用店铺</label>
+        <select id="idea-shop" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500">
+          <option value="洞庭山官方旗舰店">洞庭山官方旗舰店</option>
+          <option value="洞庭山泉官方旗舰店">洞庭山泉官方旗舰店</option>
+          <option value="蘇泉水饮旗舰店">蘇泉水饮旗舰店</option>
+          <option value="好水严选">好水严选</option>
+          <option value="虎丘官方旗舰店">虎丘官方旗舰店</option>
+          <option value="通用">通用 / 不限店铺</option>
+        </select>
+      </div>
+    </div>
+    <div class="flex gap-3 mt-6">
+      <button onclick="closeIdeaModal()" class="flex-1 py-2.5 text-sm text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors">取消</button>
+      <button onclick="saveCustomIdea()" class="flex-1 py-2.5 text-sm text-white bg-brand-600 hover:bg-brand-700 rounded-xl transition-colors">保存灵感</button>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
