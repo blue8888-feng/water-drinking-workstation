@@ -833,7 +833,7 @@
   function modelBadgeHtml(source) {
     const ai = appData.ai || {};
     if (source === 'ai' && ai.enabled && ai.apiKey && ai.model) {
-      const labelMap = { deepseek: 'DeepSeek', doubao: '豆包', custom: '自定义模型' };
+      const labelMap = { deepseek: 'DeepSeek', doubao: '豆包', zhipu: '智谱AI', siliconflow: '硅基流动', custom: '自定义模型' };
       const label = labelMap[ai.provider] || (ai.provider ? ai.provider : 'AI 大模型');
       const model = ai.model || '';
       return '<div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-sky-50 text-sky-700 border border-sky-200 mb-1">'
@@ -1361,8 +1361,10 @@ function copyOriginal() {
 
   // ================= AI 模型设置 =================
   const AI_PRESETS = {
-    deepseek: { baseUrl: 'https://api.deepseek.com/v1', model: 'deepseek-chat', keyHint: '在 platform.deepseek.com 申请，sk- 开头', modelHint: '默认 deepseek-chat，也可用 deepseek-reasoner' },
-    doubao: { baseUrl: 'https://ark.cn-beijing.volces.com/api/v3', model: '', keyHint: '火山引擎 API Key，在 console.volcengine.com 申请', modelHint: '填方舟 Endpoint ID，形如 ep-xxxx（开通推理点后获得）' },
+    deepseek: { baseUrl: 'https://api.deepseek.com/v1', model: 'deepseek-chat', keyHint: '在 platform.deepseek.com 申请，sk- 开头（新用户有赠金，近乎免费）', modelHint: '默认 deepseek-chat，也可用 deepseek-reasoner' },
+    doubao: { baseUrl: 'https://ark.cn-beijing.volces.com/api/v3', model: '', keyHint: '火山引擎 API Key，console.volcengine.com 申请（DoubaoLite 永久免费）', modelHint: '填方舟 Endpoint ID，形如 ep-xxxx（开通推理点后获得，选 DoubaoLite 免费模型）' },
+    zhipu: { baseUrl: 'https://open.bigmodel.cn/api/paas/v4', model: 'glm-4-flash', keyHint: '在 open.bigmodel.cn 注册（手机号即可），GLM-4-Flash 永久免费无限量', modelHint: '默认 glm-4-flash（128K 上下文，中文强）' },
+    siliconflow: { baseUrl: 'https://api.siliconflow.cn/v1', model: 'Qwen2.5-7B-Instruct', keyHint: '在 cloud.siliconflow.cn 注册，送 2000 万 token，9B 以下模型永久免费', modelHint: '可换 DeepSeek-R1-Distill-Llama-8B / GLM-4-9B-Chat 等免费模型' },
     custom: { baseUrl: '', model: '', keyHint: '你的 OpenAI 兼容服务 API Key', modelHint: '对应服务的模型名' }
   };
 
@@ -2025,7 +2027,9 @@ function copyOriginal() {
         <label class="block text-sm font-medium text-slate-700 mb-1.5">模型服务商</label>
         <select id="ai-provider" onchange="onAiProviderChange()" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500">
           <option value="deepseek">DeepSeek</option>
-          <option value="doubao">豆包（火山方舟）</option>
+          <option value="doubao">火山豆包（免费 DoubaoLite）</option>
+          <option value="zhipu">智谱 AI（GLM-4-Flash 免费）</option>
+          <option value="siliconflow">硅基流动（开源模型永久免费）</option>
           <option value="custom">自定义 OpenAI 兼容</option>
         </select>
       </div>
