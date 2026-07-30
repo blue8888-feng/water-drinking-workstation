@@ -290,14 +290,19 @@
           <!-- 左侧：热点列表 -->
           <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
             <div class="p-5 border-b border-slate-100 flex items-center justify-between">
-              <h3 class="font-semibold text-slate-800"><i class="fa-solid fa-fire text-orange-500 mr-2"></i>抖音实时热点（示例数据）</h3>
-              <span class="text-xs text-slate-500 bg-slate-100 px-2 py-1 rounded">每日更新</span>
+              <h3 class="font-semibold text-slate-800"><i class="fa-solid fa-fire text-orange-500 mr-2"></i>抖音实时热点</h3>
+              <div class="flex items-center gap-2">
+                <button onclick="fetchHotListManual()" class="text-xs text-slate-500 hover:text-brand-600 px-2 py-1 rounded hover:bg-slate-100 transition-colors" title="刷新热榜"><i class="fa-solid fa-rotate-right mr-1"></i>刷新</button>
+                <button onclick="openHotApiSettings()" class="text-xs text-slate-500 hover:text-brand-600 px-2 py-1 rounded hover:bg-slate-100 transition-colors"><i class="fa-solid fa-gear mr-1"></i>热榜配置</button>
+                <span id="hot-update-badge" class="text-xs text-slate-500 bg-slate-100 px-2 py-1 rounded">每日更新</span>
+              </div>
             </div>
             <div id="hot-list" class="divide-y divide-slate-100 max-h-[600px] overflow-y-auto">
               <!-- 热点项 -->
             </div>
-            <div class="p-4 bg-slate-50 border-t border-slate-100 text-xs text-slate-500">
-              <i class="fa-solid fa-circle-info mr-1"></i> 接入真实热榜需配置 GUAIKEI_API_TOKEN，当前为示例数据演示交互。
+            <div class="p-4 bg-slate-50 border-t border-slate-100 text-xs text-slate-500 flex items-center justify-between">
+              <span><i class="fa-solid fa-circle-info mr-1"></i><span id="hot-api-note">默认使用免费公共接口，失败时自动回退示例数据。</span></span>
+              <button onclick="openHotApiSettings()" class="text-brand-600 hover:underline">配置接口</button>
             </div>
           </div>
 
@@ -605,7 +610,8 @@
       memoByDate: {},
       memoItems: [],
       lastDate: new Date().toDateString(),
-      ai: { enabled: false, provider: 'deepseek', apiKey: '', baseUrl: 'https://api.deepseek.com/v1', model: 'deepseek-chat', temperature: 0.8 }
+      ai: { enabled: false, provider: 'deepseek', apiKey: '', baseUrl: 'https://api.deepseek.com/v1', model: 'deepseek-chat', temperature: 0.8 },
+      hotApi: { provider: '60s', customUrl: '', autoRefresh: true }
     };
   }
 
@@ -647,7 +653,11 @@
     document.getElementById('page-title').textContent = titles[tabName];
 
     if (tabName === 'ideas') { renderIdeas(); initIdeaScript(); }
-    if (tabName === 'trending') { renderHotList(); populateProductSelect(); }
+    if (tabName === 'trending') {
+      const hotApi = appData.hotApi || { provider: '60s', autoRefresh: true };
+      if (hotListData === hotExamples || hotApi.autoRefresh !== false) renderHotList();
+      populateProductSelect();
+    }
     if (tabName === 'review') { renderReviewHistory(); fillReviewDefaults(); }
     if (tabName === 'memo') initMemoSection();
     if (tabName === 'products') renderProducts();
@@ -839,27 +849,159 @@
     { title: '618 囤水清单来了', heat: 698, tag: '促销', desc: '节点大促，直接引导成交。' },
     { title: '一瓶水能看出你的生活态度', heat: 654, tag: '情绪', desc: '生活方式类内容，适合品牌调性。' }
   ];
+  let hotListData = hotExamples;
 
-  function renderHotList() {
+  async function renderHotList() {
     const list = document.getElementById('hot-list');
-    list.innerHTML = hotExamples.map((hot, i) => `
-      <div class="hot-item p-4 cursor-pointer" onclick="selectHot(${i})">
+    const badge = document.getElementById('hot-update-badge');
+    const note = document.getElementById('hot-api-note');
+    const hotApi = appData.hotApi || { provider: '60s', customUrl: '', autoRefresh: true };
+
+    list.innerHTML = '<div class="p-8 text-center text-sm text-slate-400"><i class="fa-solid fa-spinner fa-spin mr-2"></i>正在加载热榜…</div>';
+    if (badge) badge.textContent = '加载中…';
+
+    let data = null;
+    let source = 'sample';
+    let updatedAt = '';
+
+    if (hotApi.provider !== 'sample') {
+      try {
+        const result = await fetchDouyinHotList(hotApi);
+        data = result.data;
+        updatedAt = result.updatedAt || '';
+        source = result.source || 'api';
+      } catch (e) {
+        console.warn('热榜获取失败:', e);
+        showToast('热榜接口调用失败：' + e.message + '，已回退示例数据');
+      }
+    }
+
+    if (!data || !data.length) {
+      data = hotExamples;
+      source = 'sample';
+    }
+
+    hotListData = data;
+
+    list.innerHTML = data.map((hot, i) => `
+      <div class="hot-item p-4 cursor-pointer hover:bg-slate-50 transition-colors" onclick="selectHot(${i})" title="${hot.url ? '点击跳转抖音搜索' : ''}">
         <div class="flex items-start gap-3">
           <div class="w-8 h-8 rounded-lg ${i < 3 ? 'bg-orange-100 text-orange-600' : 'bg-slate-100 text-slate-500'} flex items-center justify-center text-sm font-bold flex-shrink-0">${i + 1}</div>
-          <div class="flex-1">
+          <div class="flex-1 min-w-0">
             <div class="flex items-center justify-between mb-1">
-              <h4 class="font-medium text-slate-800 text-sm">${hot.title}</h4>
-              <span class="text-xs font-medium text-orange-500"><i class="fa-solid fa-fire mr-1"></i>${hot.heat}</span>
+              <h4 class="font-medium text-slate-800 text-sm truncate pr-2">${escapeHtml(hot.title)}</h4>
+              <span class="text-xs font-medium text-orange-500 whitespace-nowrap"><i class="fa-solid fa-fire mr-1"></i>${formatHeat(hot.heat)}</span>
             </div>
-            <p class="text-xs text-slate-500 mb-2">${hot.desc}</p>
-            <span class="text-xs px-2 py-0.5 bg-slate-100 text-slate-600 rounded">${hot.tag}</span>
+            <p class="text-xs text-slate-500 mb-2">${escapeHtml(hot.desc || '')}</p>
+            <span class="text-xs px-2 py-0.5 bg-slate-100 text-slate-600 rounded">${escapeHtml(hot.tag || '抖音热榜')}</span>
           </div>
         </div>
       </div>
     `).join('');
 
     const select = document.getElementById('selected-hot');
-    select.innerHTML = '<option value="">请选择要改编的热点</option>' + hotExamples.map((hot, i) => `<option value="${i}">${hot.title}</option>`).join('');
+    select.innerHTML = '<option value="">请选择要改编的热点</option>' + data.map((hot, i) => `<option value="${i}">${escapeHtml(hot.title)}</option>`).join('');
+
+    if (badge) badge.textContent = source === 'api' ? (updatedAt ? '更新于 ' + updatedAt : '实时数据') : '示例数据';
+    if (note) note.textContent = source === 'api'
+      ? '当前为真实抖音热榜数据，来源：' + (hotApi.provider === '60s' ? '60s 免费公共接口' : '自定义接口') + '。'
+      : '当前为示例数据，点击「刷新」可重试真实接口。';
+  }
+
+  async function fetchDouyinHotList(hotApi) {
+    const provider = hotApi.provider || '60s';
+    let url, sourceLabel;
+    if (provider === '60s') {
+      url = 'https://60s.viki.moe/v2/douyin';
+      sourceLabel = '60s';
+    } else if (provider === 'custom') {
+      url = (hotApi.customUrl || '').trim();
+      if (!url) throw new Error('自定义接口 URL 为空');
+      sourceLabel = '自定义接口';
+    } else {
+      throw new Error('未知热榜数据源');
+    }
+
+    const resp = await fetch(url, { method: 'GET', headers: { 'Accept': 'application/json' } });
+    if (!resp.ok) throw new Error(resp.status + ' ' + resp.statusText);
+    const json = await resp.json();
+    const parsed = parseHotListResponse(json, provider);
+    return { data: parsed.data, updatedAt: parsed.updatedAt, source: sourceLabel };
+  }
+
+  function parseHotListResponse(json, provider) {
+    if (provider === '60s') {
+      if (json.code !== 200 || !Array.isArray(json.data)) throw new Error('60s 接口返回异常');
+      const updatedAt = json.data[0] && json.data[0].active_time ? json.data[0].active_time.split(' ')[1] || json.data[0].active_time : '';
+      return {
+        data: json.data.map((item, i) => ({
+          title: item.title,
+          heat: item.hot_value,
+          tag: '抖音热榜',
+          desc: '',
+          url: item.link
+        })).slice(0, 50),
+        updatedAt
+      };
+    }
+    // 自定义接口：兼容常见结构
+    const list = json.data || json.list || json.result || json;
+    if (!Array.isArray(list)) throw new Error('自定义接口未返回数组');
+    return {
+      data: list.map((item, i) => ({
+        title: item.title || item.word || item.name || '未命名',
+        heat: item.hot_value || item.hotValue || item.hot || item.heat || item.score || 0,
+        tag: item.tag || '抖音热榜',
+        desc: item.desc || item.description || '',
+        url: item.link || item.url || item.jump_url || ''
+      })).slice(0, 50),
+      updatedAt: json.update_time || json.updatedAt || json.time || ''
+    };
+  }
+
+  function formatHeat(value) {
+    const n = Number(value) || 0;
+    if (n >= 10000) return (n / 10000).toFixed(1) + '万';
+    return String(n);
+  }
+
+  function fetchHotListManual() {
+    renderHotList();
+  }
+
+  function openHotApiSettings() {
+    const hotApi = appData.hotApi || { provider: '60s', customUrl: '', autoRefresh: true };
+    document.getElementById('hot-api-provider').value = hotApi.provider || '60s';
+    document.getElementById('hot-api-custom-url').value = hotApi.customUrl || '';
+    document.getElementById('hot-api-auto').checked = hotApi.autoRefresh !== false;
+    onHotApiProviderChange();
+    document.getElementById('hot-api-modal').classList.remove('hidden');
+  }
+
+  function closeHotApiSettings() {
+    document.getElementById('hot-api-modal').classList.add('hidden');
+  }
+
+  function onHotApiProviderChange() {
+    const provider = document.getElementById('hot-api-provider').value;
+    const box = document.getElementById('hot-api-custom-box');
+    if (provider === 'custom') box.classList.remove('hidden');
+    else box.classList.add('hidden');
+  }
+
+  function saveHotApiSettings() {
+    const provider = document.getElementById('hot-api-provider').value;
+    const customUrl = document.getElementById('hot-api-custom-url').value.trim();
+    const autoRefresh = document.getElementById('hot-api-auto').checked;
+    if (provider === 'custom' && !customUrl) {
+      showToast('自定义接口 URL 不能为空');
+      return;
+    }
+    appData.hotApi = { provider, customUrl, autoRefresh };
+    saveData(appData);
+    closeHotApiSettings();
+    renderHotList();
+    showToast('热榜配置已保存');
   }
 
   function selectHot(index) {
@@ -1073,7 +1215,7 @@
       return;
     }
 
-    const hot = hotExamples[hotIndex];
+    const hot = hotListData[hotIndex] || hotExamples[hotIndex];
     const prodId = document.getElementById('product-select').value;
     const prod = prodId ? getProd(prodId) : null;
     const resultBox = document.getElementById('rewrite-result');
@@ -2502,7 +2644,7 @@ ${r.script || '未填写'}
   function clearAllData() {
     if (confirm('确定要清空所有数据吗？此操作不可恢复。')) {
       localStorage.removeItem(STORAGE_KEY);
-      appData = { tasks: [], ideas: [], customIdeas: [], reviews: [], memo: '', memoByDate: {}, memoItems: [], lastDate: new Date().toDateString() };
+      appData = { tasks: [], ideas: [], customIdeas: [], reviews: [], memo: '', memoByDate: {}, memoItems: [], lastDate: new Date().toDateString(), ai: { enabled: false, provider: 'deepseek', apiKey: '', baseUrl: 'https://api.deepseek.com/v1', model: 'deepseek-chat', temperature: 0.8 }, hotApi: { provider: '60s', customUrl: '', autoRefresh: true } };
       renderTasks();
       renderIdeas();
       renderReviewHistory();
@@ -2681,6 +2823,38 @@ ${r.script || '未填写'}
       <button onclick="saveAiSettings()" class="flex-1 py-2.5 rounded-xl text-sm bg-brand-600 hover:bg-brand-700 text-white font-medium transition-colors">保存</button>
     </div>
     <p class="text-[11px] text-slate-400 mt-3 leading-relaxed">说明：DeepSeek 默认 base=https://api.deepseek.com/v1、模型 deepseek-chat；豆包（火山方舟）需在 <a href="https://console.volcengine.com/ark" target="_blank" class="text-brand-600 underline">方舟控制台</a> 开通推理点后，把模型名填为你的 Endpoint ID（形如 ep-xxxx）；自定义可填任何兼容 OpenAI 的接口。</p>
+  </div>
+</div>
+
+<div id="hot-api-modal" class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onclick="if(event.target===this)closeHotApiSettings()">
+  <div class="bg-white rounded-2xl p-6 max-w-lg w-full shadow-xl max-h-[90vh] overflow-y-auto">
+    <h3 class="text-lg font-bold text-slate-800 mb-1"><i class="fa-solid fa-fire mr-2 text-orange-500"></i>热榜接口配置</h3>
+    <p class="text-xs text-slate-500 mb-4">默认已启用免费公共接口，无需 Token 即可获取抖音实时热榜。如需使用自己的接口或代理，可切换为自定义。</p>
+
+    <div class="space-y-4">
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1.5">数据来源</label>
+        <select id="hot-api-provider" onchange="onHotApiProviderChange()" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500">
+          <option value="60s">60s 免费公共接口（推荐，免 Token）</option>
+          <option value="custom">自定义接口</option>
+        </select>
+      </div>
+      <div id="hot-api-custom-box" class="hidden">
+        <label class="block text-sm font-medium text-slate-700 mb-1.5">自定义接口 URL</label>
+        <input id="hot-api-custom-url" type="text" placeholder="https://your-domain.com/api/douyin-hot" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500">
+        <p class="text-xs text-slate-400 mt-1">接口需返回 JSON，结构形如 { data: [{ title, hot_value, link }] }。</p>
+      </div>
+      <label class="flex items-center justify-between bg-slate-50 px-4 py-3 rounded-xl cursor-pointer">
+        <span class="text-sm font-medium text-slate-700">进入二创页时自动刷新热榜</span>
+        <input id="hot-api-auto" type="checkbox" class="w-5 h-5 accent-brand-600">
+      </label>
+    </div>
+
+    <div class="flex gap-3 mt-6">
+      <button onclick="closeHotApiSettings()" class="flex-1 py-2.5 rounded-xl text-sm border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors">取消</button>
+      <button onclick="saveHotApiSettings()" class="flex-1 py-2.5 rounded-xl text-sm bg-brand-600 hover:bg-brand-700 text-white font-medium transition-colors">保存</button>
+    </div>
+    <p class="text-[11px] text-slate-400 mt-3 leading-relaxed">说明：GUAIKEI_API_TOKEN 主要用于后端/CLI 抓取，浏览器前端直接调用通常会被 CORS 拦截。若你已有 GUAIKEI Token，建议自建一个转发代理，把地址填到「自定义接口」。</p>
   </div>
 </div>
 
