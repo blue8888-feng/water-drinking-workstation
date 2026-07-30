@@ -1100,7 +1100,7 @@
     return `
       <div class="script-box p-4 rounded-xl">
         <h4 class="font-semibold text-brand-800 mb-2 text-sm">🎯 改编方向</h4>
-        <p class="text-sm text-slate-700">原热点：<span class="font-medium">${hot.title}</span>（${hot.tag}）</p>
+        <p class="text-sm text-slate-700">原热点：<span class="font-medium">${hot ? hot.title : '未选择热点（原创生成）'}</span>${hot ? '（' + hot.tag + '）' : ''}</p>
         <p class="text-sm text-slate-700 mt-1">适配店铺：<span class="font-medium">${shop}</span></p>
         ${prod ? `<p class="text-sm text-slate-700 mt-1">挂车商品：<span class="font-medium">${prod.name}（${prod.brand}）</span>${prod.price ? ' · 管控价 ' + prod.price : ''}${prod.activity ? ' · ' + prod.activity : ''}</p>` : ''}
         <p class="text-sm text-slate-700 mt-1">核心卖点：<span class="font-medium">${pointText}</span></p>
@@ -1132,7 +1132,7 @@
           <span class="tag text-xs px-3 py-1 bg-slate-100 text-slate-600 rounded-full">#矿泉水</span>
           <span class="tag text-xs px-3 py-1 bg-slate-100 text-slate-600 rounded-full">#夏天喝水</span>
           <span class="tag text-xs px-3 py-1 bg-slate-100 text-slate-600 rounded-full">#囤货</span>
-          <span class="tag text-xs px-3 py-1 bg-slate-100 text-slate-600 rounded-full">#${hot.tag}</span>
+          ${hot ? `<span class="tag text-xs px-3 py-1 bg-slate-100 text-slate-600 rounded-full">#${hot.tag}</span>` : `<span class="tag text-xs px-3 py-1 bg-slate-100 text-slate-600 rounded-full">#好水</span>`}
         </div>
       </div>`;
   }
@@ -1210,43 +1210,43 @@
     const shop = document.getElementById('shop-select').value;
     const point = document.getElementById('selling-point').value.trim();
 
-    if (hotIndex === '') {
-      alert('请先选择一个热点');
-      return;
-    }
-
-    const hot = hotListData[hotIndex] || hotExamples[hotIndex];
+    const hot = hotIndex !== '' ? (hotListData[hotIndex] || hotExamples[hotIndex]) : null;
     const prodId = document.getElementById('product-select').value;
     const prod = prodId ? getProd(prodId) : null;
     const resultBox = document.getElementById('rewrite-result');
     const content = document.getElementById('rewrite-content');
 
-    const hotClean = hot.title.replace(/全网都在挑战的\s*,?/, '').replace(/[“”"'']/g, '').trim();
+    const hotClean = hot ? hot.title.replace(/全网都在挑战的\s*,?/, '').replace(/[“”"'']/g, '').trim() : '';
     const prodName = prod ? prod.name.replace(/（.*?）|\(.*?\)/g, '') : '';
     const pointText = point || (prod ? prod.sp : '水源地就在苏州边上，喝着放心');
 
     const headHtml = renderRewriteHead(shop, hot, prod, pointText, prodName);
-    const fallbackTags = ['#' + shop.replace('官方旗舰店', '').replace('旗舰店', ''), '#矿泉水', '#夏天喝水', '#囤货', '#' + hot.tag];
+    const fallbackTags = ['#' + shop.replace('官方旗舰店', '').replace('旗舰店', ''), '#矿泉水', '#夏天喝水', '#囤货', ...(hot ? ['#' + hot.tag] : ['#好水'])];
+
+    const localHooks = hot ? [
+      `(对着镜头晃晃手里的瓶子)你刷到「${hotClean}」那个梗没？我昨天真试了一把，发现自己好些年水都白喝了。`,
+      `(压低声音，像说悄悄话)最近「${hotClean}」这么火不是没道理的。但我跟你讲句大实话——喝水这事儿，门道比你想得多。`,
+      `(苦笑)我妈又念叨我喝水不讲究。行，今天我就用${shop}这款，让她看看啥叫"会过日子的人"。`
+    ] : [
+      `(对着镜头晃晃手里的瓶子)我跟你说，我最近发现一个事，好多年水都白喝了。`,
+      `(压低声音，像说悄悄话)喝水这事儿，门道比你想得多。今天说点实在的，不端着。`,
+      `(苦笑)我妈又念叨我喝水不讲究。行，今天我就用${shop}这款，让她看看啥叫"会过日子的人"。`
+    ];
+    const localScenes = [
+      `你想啊，半夜起来渴得不行，摸黑接自来水灌一口，第二天嗓子发干。我现在床头常备${prodName || shop+'这款'}，渴了拧开就喝，省事还放心。`,
+      `带娃的应该懂我意思——半夜冲奶最怕水质不干净。${prodName || shop+'这款'}我专门用来冲奶，宝宝肯喝，我也安心。`,
+      `办公室下午三四点最困，奶茶喝多了腻还长肉。我工位底下囤一箱${prodName || shop+'这款'}，困了来一瓶，比咖啡舒服。`,
+      `健身完那一身汗，最想来口凉的。我现在不直接灌冰自来水了，先整瓶${prodName || shop+'这款'}缓一缓，胃里舒服多了。`,
+      `夏天水放两天就有味儿，你肯定也烦。换了${prodName || shop+'这款'}之后，放多久都清清爽爽，烧饭煮茶都敢用。`
+    ];
+    const localCta = prod
+      ? `${prodName}就挂左下角小黄车了，我自个儿家就在喝。${prod.activity ? prod.activity + '，' : ''}想要的自己去拍，好水自己会说话。`
+      : `${shop}这款就挂左下角了，苏州本地发的，隔天就到。懒得挑的直接拍链接里的组合，划算。`;
 
     if (!aiReady()) {
-      const hooks = [
-        `(对着镜头晃晃手里的瓶子)你刷到「${hotClean}」那个梗没？我昨天真试了一把，发现自己好些年水都白喝了。`,
-        `(压低声音，像说悄悄话)最近「${hotClean}」这么火不是没道理的。但我跟你讲句大实话——喝水这事儿，门道比你想得多。`,
-        `(苦笑)我妈又念叨我喝水不讲究。行，今天我就用${shop}这款，让她看看啥叫"会过日子的人"。`
-      ];
-      const hook = hooks[Math.floor(Math.random() * hooks.length)];
-      const scenes = [
-        `你想啊，半夜起来渴得不行，摸黑接自来水灌一口，第二天嗓子发干。我现在床头常备${prodName || shop+'这款'}，渴了拧开就喝，省事还放心。`,
-        `带娃的应该懂我意思——半夜冲奶最怕水质不干净。${prodName || shop+'这款'}我专门用来冲奶，宝宝肯喝，我也安心。`,
-        `办公室下午三四点最困，奶茶喝多了腻还长肉。我工位底下囤一箱${prodName || shop+'这款'}，困了来一瓶，比咖啡舒服。`,
-        `健身完那一身汗，最想来口凉的。我现在不直接灌冰自来水了，先整瓶${prodName || shop+'这款'}缓一缓，胃里舒服多了。`,
-        `夏天水放两天就有味儿，你肯定也烦。换了${prodName || shop+'这款'}之后，放多久都清清爽爽，烧饭煮茶都敢用。`
-      ];
-      const scene = scenes[Math.floor(Math.random() * scenes.length)];
-      const cta = prod
-        ? `${prodName}就挂左下角小黄车了，我自个儿家就在喝。${prod.activity ? prod.activity + '，' : ''}想要的自己去拍，好水自己会说话。`
-        : `${shop}这款就挂左下角了，苏州本地发的，隔天就到。懒得挑的直接拍链接里的组合，划算。`;
-      content.innerHTML = modelBadgeHtml('local') + headHtml + renderRewriteBodyLocal(hook, scene, cta, pointText, prod, shop, hot);
+      const hook = localHooks[Math.floor(Math.random() * localHooks.length)];
+      const scene = localScenes[Math.floor(Math.random() * localScenes.length)];
+      content.innerHTML = modelBadgeHtml('local') + headHtml + renderRewriteBodyLocal(hook, scene, localCta, pointText, prod, shop, hot);
       resultBox.classList.remove('hidden');
       return;
     }
@@ -1254,30 +1254,16 @@
     resultBox.classList.remove('hidden');
     content.innerHTML = '<div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200 mb-1"><i class="fa-solid fa-spinner fa-spin"></i><span>AI 生成中…</span></div>' + headHtml + '<div class="text-sm text-slate-400 bg-slate-50 p-3 rounded-lg">🤖 AI 正在生成脚本，稍候…</div>';
     const sys = '你是抖音电商短视频脚本专家，深耕水饮/食品类目。请输出口语化、有真实生活场景、去AI味的口播稿，像真人在跟朋友唠嗑，不要书面腔和套话。';
-    const user = `【热点】${hot.title}（标签：${hot.tag}）\n【店铺】${shop}\n${prod ? '【商品】' + prod.name + '（' + prod.brand + '）' + (prod.price ? ' 管控价 ' + prod.price : '') + (prod.activity ? ' ' + prod.activity : '') + '\n' : ''}【要突出的卖点】${pointText}\n\n请基于以上生成一条抖音口播脚本：\n- 口语化、像真人和朋友唠嗑，别端着、别堆书面词\n- 结构：0-3秒钩子 / 场景带入 / 画面证据 / 收尾引导（挂小黄车）\n- 把卖点自然带进去，结尾软一点，不硬劝\n- 最后一行给 5 个话题标签，格式「#标签1 #标签2 …」`;
+    const hotPart = hot ? `【热点】${hot.title}（标签：${hot.tag}）\n` : '【热点】无特定热点，请基于店铺和商品卖点进行原创口播创作\n';
+    const user = `${hotPart}【店铺】${shop}\n${prod ? '【商品】' + prod.name + '（' + prod.brand + '）' + (prod.price ? ' 管控价 ' + prod.price : '') + (prod.activity ? ' ' + prod.activity : '') + '\n' : ''}【要突出的卖点】${pointText}\n\n请基于以上生成一条抖音口播脚本：\n- 口语化、像真人和朋友唠嗑，别端着、别堆书面词\n- 结构：0-3秒钩子 / 场景带入 / 画面证据 / 收尾引导（挂小黄车）\n- 把卖点自然带进去，结尾软一点，不硬劝\n- 最后一行给 5 个话题标签，格式「#标签1 #标签2 …」`;
     try {
       const out = await callLLM(sys, user);
       content.innerHTML = modelBadgeHtml('ai') + headHtml + renderAiBody(out, fallbackTags);
     } catch (e) {
       showToast('AI 生成失败：' + e.message + '，已用本地模板');
-      const hooks = [
-        `(对着镜头晃晃手里的瓶子)你刷到「${hotClean}」那个梗没？我昨天真试了一把，发现自己好些年水都白喝了。`,
-        `(压低声音，像说悄悄话)最近「${hotClean}」这么火不是没道理的。但我跟你讲句大实话——喝水这事儿，门道比你想得多。`,
-        `(苦笑)我妈又念叨我喝水不讲究。行，今天我就用${shop}这款，让她看看啥叫"会过日子的人"。`
-      ];
-      const hook = hooks[Math.floor(Math.random() * hooks.length)];
-      const scenes = [
-        `你想啊，半夜起来渴得不行，摸黑接自来水灌一口，第二天嗓子发干。我现在床头常备${prodName || shop+'这款'}，渴了拧开就喝，省事还放心。`,
-        `带娃的应该懂我意思——半夜冲奶最怕水质不干净。${prodName || shop+'这款'}我专门用来冲奶，宝宝肯喝，我也安心。`,
-        `办公室下午三四点最困，奶茶喝多了腻还长肉。我工位底下囤一箱${prodName || shop+'这款'}，困了来一瓶，比咖啡舒服。`,
-        `健身完那一身汗，最想来口凉的。我现在不直接灌冰自来水了，先整瓶${prodName || shop+'这款'}缓一缓，胃里舒服多了。`,
-        `夏天水放两天就有味儿，你肯定也烦。换了${prodName || shop+'这款'}之后，放多久都清清爽爽，烧饭煮茶都敢用。`
-      ];
-      const scene = scenes[Math.floor(Math.random() * scenes.length)];
-      const cta = prod
-        ? `${prodName}就挂左下角小黄车了，我自个儿家就在喝。${prod.activity ? prod.activity + '，' : ''}想要的自己去拍，好水自己会说话。`
-        : `${shop}这款就挂左下角了，苏州本地发的，隔天就到。懒得挑的直接拍链接里的组合，划算。`;
-      content.innerHTML = modelBadgeHtml('local') + headHtml + renderRewriteBodyLocal(hook, scene, cta, pointText, prod, shop, hot);
+      const hook = localHooks[Math.floor(Math.random() * localHooks.length)];
+      const scene = localScenes[Math.floor(Math.random() * localScenes.length)];
+      content.innerHTML = modelBadgeHtml('local') + headHtml + renderRewriteBodyLocal(hook, scene, localCta, pointText, prod, shop, hot);
     }
   }
 
