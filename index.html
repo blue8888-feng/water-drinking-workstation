@@ -471,11 +471,24 @@
 
         <div id="prod-shop-summary" class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-5"></div>
 
+        <div class="flex items-center justify-between mb-3 flex-wrap gap-3 bg-white rounded-xl border border-slate-200 px-4 py-3">
+          <div class="flex items-center gap-3">
+            <span id="prod-selected-count" class="text-sm text-slate-600">已选 0 款</span>
+            <span class="text-xs text-slate-400">勾选商品后点右侧批量填卖点；不勾选则应用到当前筛选全部商品</span>
+          </div>
+          <button onclick="openBulkSpModal()" class="text-sm px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-lg transition-colors flex items-center">
+            <i class="fa-solid fa-pen-to-square mr-1.5"></i>批量填卖点
+          </button>
+        </div>
+
         <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
           <div class="overflow-x-auto">
             <table class="w-full text-sm">
               <thead>
                 <tr class="bg-slate-50 text-left text-xs text-slate-500 uppercase">
+                  <th class="px-4 py-3 font-medium w-10">
+                    <input type="checkbox" id="prod-check-all" class="w-4 h-4 text-brand-600 rounded border-slate-300 focus:ring-brand-500" onchange="toggleAllProdCheck(this.checked)">
+                  </th>
                   <th class="px-4 py-3 font-medium">商品</th>
                   <th class="px-4 py-3 font-medium">品牌</th>
                   <th class="px-4 py-3 font-medium">在售店铺</th>
@@ -1057,6 +1070,8 @@
     return { ...base, price: edit.price || '', activity: edit.activity || '', sp: edit.sp !== undefined && edit.sp !== '' ? edit.sp : base.sp };
   }
 
+  let _lastFilteredProducts = [];
+
   function saveProdField(id, field, value) {
     if (!appData.productEdits) appData.productEdits = {};
     if (!appData.productEdits[id]) appData.productEdits[id] = {};
@@ -1103,15 +1118,20 @@
     if (shopF) list = list.filter(p => SHOP_BRANDS[shopF].includes(p.brand));
     if (brandF) list = list.filter(p => p.brand === brandF);
     if (kw) list = list.filter(p => (p.name + p.brand + p.sp).toLowerCase().includes(kw));
+    _lastFilteredProducts = list;
 
     const body = document.getElementById('prod-table-body');
     if (list.length === 0) {
-      body.innerHTML = '<tr><td colspan="7" class="px-4 py-10 text-center text-slate-400 text-sm">没有符合条件的商品</td></tr>';
+      body.innerHTML = '<tr><td colspan="8" class="px-4 py-10 text-center text-slate-400 text-sm">没有符合条件的商品</td></tr>';
+      updateProdCheckState();
       return;
     }
     body.innerHTML = list.map(p => {
       const shops = productShops(p);
       return `<tr class="hover:bg-slate-50 transition-colors">
+        <td class="px-4 py-3 align-top">
+          <input type="checkbox" class="prod-row-check w-4 h-4 text-brand-600 rounded border-slate-300 focus:ring-brand-500" value="${p.id}" onchange="updateProdCheckState()">
+        </td>
         <td class="px-4 py-3 font-medium text-slate-800">${p.name}</td>
         <td class="px-4 py-3"><span class="text-xs px-2 py-1 bg-brand-50 text-brand-700 rounded-lg">${p.brand}</span></td>
         <td class="px-4 py-3 text-xs text-slate-600 leading-relaxed max-w-[180px]">${shops.length ? shops.map(s => s.replace('官方旗舰店', '官旗').replace('旗舰店', '')).join('<br>') : '<span class="text-slate-300">—</span>'}</td>
@@ -1121,7 +1141,76 @@
         <td class="px-4 py-3"><button onclick="goRewrite('${p.id}')" class="text-xs px-3 py-1.5 bg-brand-50 hover:bg-brand-100 text-brand-700 rounded-lg whitespace-nowrap transition-colors"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i>去二创</button></td>
       </tr>`;
     }).join('');
-    requestAnimationFrame(() => body.querySelectorAll('textarea.auto-resize').forEach(autoResize));
+    requestAnimationFrame(() => {
+      body.querySelectorAll('textarea.auto-resize').forEach(autoResize);
+      updateProdCheckState();
+    });
+  }
+
+  function updateProdCheckState() {
+    const checks = document.querySelectorAll('.prod-row-check');
+    const checked = document.querySelectorAll('.prod-row-check:checked');
+    const all = checks.length > 0 && checks.length === checked.length;
+    const allBox = document.getElementById('prod-check-all');
+    if (allBox) {
+      allBox.checked = all;
+      allBox.indeterminate = checked.length > 0 && !all;
+    }
+    const countEl = document.getElementById('prod-selected-count');
+    if (countEl) countEl.textContent = `已选 ${checked.length} 款`;
+  }
+
+  function toggleAllProdCheck(checked) {
+    document.querySelectorAll('.prod-row-check').forEach(cb => cb.checked = checked);
+    updateProdCheckState();
+  }
+
+  function getSelectedProdIds() {
+    return Array.from(document.querySelectorAll('.prod-row-check:checked')).map(cb => cb.value);
+  }
+
+  function openBulkSpModal() {
+    const selected = getSelectedProdIds();
+    let targetText = '';
+    if (selected.length > 0) {
+      targetText = `将应用到已勾选的 ${selected.length} 款商品`;
+    } else {
+      targetText = `未勾选商品，将应用到当前筛选的 ${_lastFilteredProducts.length} 款商品`;
+    }
+    document.getElementById('bulk-sp-target').textContent = targetText;
+    document.getElementById('bulk-sp-text').value = '';
+    document.getElementById('bulk-sp-modal').classList.remove('hidden');
+    setTimeout(() => document.getElementById('bulk-sp-text').focus(), 50);
+  }
+
+  function closeBulkSpModal() {
+    document.getElementById('bulk-sp-modal').classList.add('hidden');
+  }
+
+  function applyBulkSp() {
+    const text = document.getElementById('bulk-sp-text').value.trim();
+    if (!text) {
+      showToast('请先填写卖点内容');
+      return;
+    }
+    let ids = getSelectedProdIds();
+    if (ids.length === 0) {
+      ids = _lastFilteredProducts.map(p => p.id);
+    }
+    if (ids.length === 0) {
+      showToast('没有可应用的商品');
+      return;
+    }
+    if (!confirm(`确定把这条卖点应用到 ${ids.length} 款商品吗？\n\n${text}`)) return;
+    if (!appData.productEdits) appData.productEdits = {};
+    ids.forEach(id => {
+      if (!appData.productEdits[id]) appData.productEdits[id] = {};
+      appData.productEdits[id].sp = text;
+    });
+    saveData(appData);
+    renderProducts();
+    closeBulkSpModal();
+    showToast(`已更新 ${ids.length} 款商品的卖点`);
   }
 
   function escapeAttr(text) {
@@ -1670,6 +1759,22 @@
     <div class="flex gap-3 mt-6">
       <button onclick="closeIdeaModal()" class="flex-1 py-2.5 text-sm text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors">取消</button>
       <button onclick="saveCustomIdea()" class="flex-1 py-2.5 text-sm text-white bg-brand-600 hover:bg-brand-700 rounded-xl transition-colors">保存灵感</button>
+    </div>
+  </div>
+</div>
+
+<!-- 批量填写卖点弹窗 -->
+<div id="bulk-sp-modal" class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onclick="if(event.target===this)closeBulkSpModal()">
+  <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-xl">
+    <h3 class="text-lg font-bold text-slate-800 mb-2"><i class="fa-solid fa-pen-to-square mr-2 text-brand-600"></i>批量填写卖点</h3>
+    <p id="bulk-sp-target" class="text-xs text-slate-500 mb-4">将应用到当前筛选商品</p>
+    <div>
+      <label class="block text-sm font-medium text-slate-700 mb-1.5">卖点文案</label>
+      <textarea id="bulk-sp-text" rows="4" placeholder="例如：大桶足量，家庭/办公囤水首选，苏州本地水源新鲜直达" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500 resize-none"></textarea>
+    </div>
+    <div class="flex gap-3 mt-6">
+      <button onclick="closeBulkSpModal()" class="flex-1 py-2.5 text-sm text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors">取消</button>
+      <button onclick="applyBulkSp()" class="flex-1 py-2.5 text-sm text-white bg-brand-600 hover:bg-brand-700 rounded-xl transition-colors">确认应用</button>
     </div>
   </div>
 </div>
