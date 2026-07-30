@@ -1879,6 +1879,7 @@ ${script || '未填写'}
           </div>
           <div class="flex items-center gap-2">
             <button onclick="event.stopPropagation(); editReview(${i})" class="text-xs text-slate-400 hover:text-brand-600 px-1.5 py-0.5 rounded hover:bg-slate-100 transition-colors" title="编辑"><i class="fa-solid fa-pen"></i></button>
+            <button onclick="event.stopPropagation(); deleteReview(${i})" class="text-xs text-slate-400 hover:text-red-600 px-1.5 py-0.5 rounded hover:bg-slate-100 transition-colors" title="删除"><i class="fa-solid fa-trash-can"></i></button>
             <span class="text-xs text-slate-400">${r.enterTime ? '录入 ' + r.enterTime.replace('T', ' ') : (r.date.split(' ')[0])}${r.pubDate ? ' · 发布 ' + r.pubDate : ''}</span>
           </div>
         </div>
@@ -1967,6 +1968,23 @@ ${script || '未填写'}
     editingReviewIndex = null;
     updateReviewFormMode(false);
     clearReviewForm();
+  }
+
+  function deleteReview(index) {
+    event.stopPropagation();
+    const r = appData.reviews[index];
+    if (!r) return;
+    if (!confirm('确定删除这条复盘记录吗？此操作不可恢复。')) return;
+    const isCurrent = currentReviewReport && currentReviewReport === r;
+    appData.reviews.splice(index, 1);
+    saveData(appData);
+    if (isCurrent) {
+      currentReviewReport = null;
+      const box = document.getElementById('review-result');
+      if (box) box.classList.add('hidden');
+    }
+    renderReviewHistory();
+    showToast('已删除该复盘记录');
   }
 
   // ================= AI 脚本裂变 =================
