@@ -457,12 +457,41 @@
 
       <!-- 5. 备忘录 -->
       <section id="tab-memo" class="tab-content hidden fade-in">
-        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden h-[calc(100vh-180px)] flex flex-col">
-          <div class="p-5 border-b border-slate-100 flex items-center justify-between">
-            <h3 class="font-semibold text-slate-800"><i class="fa-solid fa-note-sticky text-brand-600 mr-2"></i>运营备忘录</h3>
-            <span id="memo-status" class="text-xs text-slate-400">自动保存中...</span>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[calc(100vh-180px)]">
+          <!-- 左侧：备忘录编辑 -->
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+            <div class="p-5 border-b border-slate-100 flex items-center justify-between">
+              <div>
+                <h3 class="font-semibold text-slate-800"><i class="fa-solid fa-note-sticky text-brand-600 mr-2"></i>运营备忘录</h3>
+                <p id="memo-date-label" class="text-xs text-slate-500 mt-1">加载中...</p>
+              </div>
+              <span id="memo-status" class="text-xs text-slate-400">自动保存中...</span>
+            </div>
+            <textarea id="memo-text" class="flex-1 w-full p-6 resize-none border-0 text-sm leading-relaxed text-slate-700 bg-slate-50 focus:bg-white transition-colors" placeholder="记录临时想法、达人对接信息、上级要求、活动节点..." oninput="saveMemo()"></textarea>
           </div>
-          <textarea id="memo-text" class="flex-1 w-full p-6 resize-none border-0 text-sm leading-relaxed text-slate-700 bg-slate-50 focus:bg-white transition-colors" placeholder="记录临时想法、达人对接信息、上级要求、活动节点..." oninput="saveMemo()"></textarea>
+          <!-- 右侧：全月日历 -->
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+            <div class="p-5 border-b border-slate-100 flex items-center justify-between">
+              <h3 class="font-semibold text-slate-800"><i class="fa-regular fa-calendar-check text-brand-600 mr-2"></i>日历</h3>
+              <div class="flex items-center gap-2">
+                <button onclick="changeMemoMonth(-1)" class="w-8 h-8 flex items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors" title="上个月"><i class="fa-solid fa-chevron-left text-xs"></i></button>
+                <span id="memo-month-label" class="text-sm font-medium text-slate-700 min-w-[90px] text-center">加载中...</span>
+                <button onclick="changeMemoMonth(1)" class="w-8 h-8 flex items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors" title="下个月"><i class="fa-solid fa-chevron-right text-xs"></i></button>
+                <button onclick="goMemoToday()" class="ml-2 px-2.5 py-1.5 text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg transition-colors">今天</button>
+              </div>
+            </div>
+            <div class="flex-1 p-5 overflow-auto">
+              <div class="grid grid-cols-7 gap-1 text-center text-xs font-medium text-slate-500 mb-2">
+                <div>日</div><div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div>
+              </div>
+              <div id="memo-calendar-grid" class="grid grid-cols-7 gap-1"></div>
+              <div class="mt-4 flex items-center gap-4 text-xs text-slate-500">
+                <div class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-brand-500"></span>有备忘</div>
+                <div class="flex items-center gap-1.5"><span class="w-5 h-5 rounded-lg border border-brand-200 bg-brand-50 inline-block"></span>今天</div>
+                <div class="flex items-center gap-1.5"><span class="w-5 h-5 rounded-lg bg-brand-600 inline-block"></span>选中</div>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -536,6 +565,7 @@
       customIdeas: [],
       reviews: [],
       memo: '',
+      memoByDate: {},
       lastDate: new Date().toDateString(),
       ai: { enabled: false, provider: 'deepseek', apiKey: '', baseUrl: 'https://api.deepseek.com/v1', model: 'deepseek-chat', temperature: 0.8 }
     };
@@ -581,7 +611,7 @@
     if (tabName === 'ideas') { renderIdeas(); initIdeaScript(); }
     if (tabName === 'trending') { renderHotList(); populateProductSelect(); }
     if (tabName === 'review') { renderReviewHistory(); fillReviewDefaults(); }
-    if (tabName === 'memo') document.getElementById('memo-text').value = appData.memo || '';
+    if (tabName === 'memo') initMemoSection();
     if (tabName === 'products') renderProducts();
   }
 
@@ -1047,9 +1077,15 @@ function copyRewrite() {
 
   function saveRewriteToMemo() {
     const text = document.getElementById('rewrite-content').innerText;
-    appData.memo = (appData.memo || '') + '\n\n--- 二创脚本 ' + new Date().toLocaleString('zh-CN') + ' ---\n' + text;
+    const dateStr = memoSelectedDate || formatDateLocal(new Date());
+    if (!appData.memoByDate) appData.memoByDate = {};
+    appData.memoByDate[dateStr] = (appData.memoByDate[dateStr] || '') + '\n\n--- 二创脚本 ' + new Date().toLocaleString('zh-CN') + ' ---\n' + text;
     saveData(appData);
-    alert('已加入备忘录');
+    if (memoSelectedDate === dateStr) {
+      document.getElementById('memo-text').value = appData.memoByDate[dateStr];
+      renderMemoCalendar();
+    }
+    alert('已加入 ' + dateStr + ' 的备忘录');
   }
 
   // ================= 原创脚本工坊（选题灵感联动） =================
@@ -1172,9 +1208,15 @@ function copyOriginal() {
 
   function saveOriginalToMemo() {
     const text = document.getElementById('original-content').innerText;
-    appData.memo = (appData.memo || '') + '\n\n--- 原创脚本 ' + new Date().toLocaleString('zh-CN') + ' ---\n' + text;
+    const dateStr = memoSelectedDate || formatDateLocal(new Date());
+    if (!appData.memoByDate) appData.memoByDate = {};
+    appData.memoByDate[dateStr] = (appData.memoByDate[dateStr] || '') + '\n\n--- 原创脚本 ' + new Date().toLocaleString('zh-CN') + ' ---\n' + text;
     saveData(appData);
-    alert('已加入备忘录');
+    if (memoSelectedDate === dateStr) {
+      document.getElementById('memo-text').value = appData.memoByDate[dateStr];
+      renderMemoCalendar();
+    }
+    alert('已加入 ' + dateStr + ' 的备忘录');
   }
 
   function useOriginalAsTask() {
@@ -1665,6 +1707,103 @@ function copyOriginal() {
 
   // ================= 备忘录 =================
   let memoTimer;
+  let memoSelectedDate = formatDateLocal(new Date());
+  let memoCalendarYear = new Date().getFullYear();
+  let memoCalendarMonth = new Date().getMonth();
+
+  function formatDateLocal(d) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+
+  function parseLocalDate(str) {
+    const [y, m, day] = str.split('-').map(Number);
+    return new Date(y, m - 1, day);
+  }
+
+  function updateMemoDateLabel() {
+    const el = document.getElementById('memo-date-label');
+    if (!el || !memoSelectedDate) return;
+    const d = parseLocalDate(memoSelectedDate);
+    el.textContent = d.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
+  }
+
+  function initMemoSection() {
+    const today = new Date();
+    memoCalendarYear = today.getFullYear();
+    memoCalendarMonth = today.getMonth();
+    memoSelectedDate = formatDateLocal(today);
+    if (!appData.memoByDate) appData.memoByDate = {};
+    // 兼容旧版单条 memo：首次进入时迁到今天
+    if (appData.memo && !appData.memoByDate[memoSelectedDate]) {
+      appData.memoByDate[memoSelectedDate] = appData.memo;
+      saveData(appData);
+    }
+    renderMemoCalendar();
+    loadMemoForDate(memoSelectedDate);
+  }
+
+  function renderMemoCalendar() {
+    const grid = document.getElementById('memo-calendar-grid');
+    const label = document.getElementById('memo-month-label');
+    if (!grid || !label) return;
+    const year = memoCalendarYear;
+    const month = memoCalendarMonth;
+    label.textContent = `${year}年${month + 1}月`;
+    const firstDay = new Date(year, month, 1).getDay();
+    const lastDate = new Date(year, month + 1, 0).getDate();
+    const today = formatDateLocal(new Date());
+    let html = '';
+    for (let i = 0; i < firstDay; i++) html += '<div></div>';
+    for (let d = 1; d <= lastDate; d++) {
+      const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      const isSelected = dateStr === memoSelectedDate;
+      const isToday = dateStr === today;
+      const hasMemo = !!(appData.memoByDate && appData.memoByDate[dateStr] && appData.memoByDate[dateStr].trim());
+      let classes = 'relative h-10 w-10 mx-auto flex items-center justify-center rounded-lg text-sm transition-colors ';
+      if (isSelected) classes += 'bg-brand-600 text-white font-medium ';
+      else if (isToday) classes += 'bg-brand-50 text-brand-700 border border-brand-200 font-medium ';
+      else classes += 'text-slate-700 hover:bg-slate-100 ';
+      const dotColor = isSelected ? 'bg-white' : 'bg-brand-500';
+      html += `<button onclick="selectMemoDate('${dateStr}')" class="${classes}" title="${dateStr}">${d}${hasMemo ? `<span class="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full ${dotColor}"></span>` : ''}</button>`;
+    }
+    grid.innerHTML = html;
+  }
+
+  function selectMemoDate(dateStr) {
+    // 切日期前自动保存当前日期内容
+    const raw = document.getElementById('memo-text').value;
+    if (raw.trim()) appData.memoByDate[memoSelectedDate] = raw;
+    else delete appData.memoByDate[memoSelectedDate];
+    saveData(appData);
+
+    memoSelectedDate = dateStr;
+    loadMemoForDate(dateStr);
+    renderMemoCalendar();
+  }
+
+  function loadMemoForDate(dateStr) {
+    const text = (appData.memoByDate && appData.memoByDate[dateStr]) || '';
+    document.getElementById('memo-text').value = text;
+    updateMemoDateLabel();
+  }
+
+  function changeMemoMonth(delta) {
+    memoCalendarMonth += delta;
+    if (memoCalendarMonth > 11) { memoCalendarMonth = 0; memoCalendarYear++; }
+    if (memoCalendarMonth < 0) { memoCalendarMonth = 11; memoCalendarYear--; }
+    renderMemoCalendar();
+  }
+
+  function goMemoToday() {
+    const today = new Date();
+    memoCalendarYear = today.getFullYear();
+    memoCalendarMonth = today.getMonth();
+    selectMemoDate(formatDateLocal(today));
+  }
+
   function saveMemo() {
     clearTimeout(memoTimer);
     const status = document.getElementById('memo-status');
@@ -1672,10 +1811,14 @@ function copyOriginal() {
     status.classList.add('text-brand-600');
 
     memoTimer = setTimeout(() => {
-      appData.memo = document.getElementById('memo-text').value;
+      if (!appData.memoByDate) appData.memoByDate = {};
+      const raw = document.getElementById('memo-text').value;
+      if (raw.trim()) appData.memoByDate[memoSelectedDate] = raw;
+      else delete appData.memoByDate[memoSelectedDate];
       saveData(appData);
       status.textContent = '已自动保存';
       status.classList.remove('text-brand-600');
+      renderMemoCalendar();
     }, 500);
   }
 
@@ -1713,7 +1856,13 @@ function copyOriginal() {
           renderTasks();
           renderIdeas();
           renderReviewHistory();
-          document.getElementById('memo-text').value = appData.memo || '';
+          if (!appData.memoByDate) appData.memoByDate = {};
+          if (document.getElementById('tab-memo') && !document.getElementById('tab-memo').classList.contains('hidden')) {
+            initMemoSection();
+          } else {
+            document.getElementById('memo-text').value = appData.memo || '';
+          }
+          saveData(appData);
           alert('数据导入成功！');
         }
       } catch (e) {
@@ -1884,8 +2033,14 @@ function copyOriginal() {
         renderTasks();
         renderIdeas();
         renderReviewHistory();
-        const memoEl = document.getElementById('memo-text');
-        if (memoEl) memoEl.value = appData.memo || '';
+        if (!appData.memoByDate) appData.memoByDate = {};
+        if (document.getElementById('tab-memo') && !document.getElementById('tab-memo').classList.contains('hidden')) {
+          initMemoSection();
+        } else {
+          const memoEl = document.getElementById('memo-text');
+          if (memoEl) memoEl.value = appData.memo || '';
+        }
+        saveData(appData);
         alert('已从同步链接载入最新数据。');
       }
     } catch (e) {
@@ -1898,11 +2053,15 @@ function copyOriginal() {
   function clearAllData() {
     if (confirm('确定要清空所有数据吗？此操作不可恢复。')) {
       localStorage.removeItem(STORAGE_KEY);
-      appData = { tasks: [], ideas: [], customIdeas: [], reviews: [], memo: '', lastDate: new Date().toDateString() };
+      appData = { tasks: [], ideas: [], customIdeas: [], reviews: [], memo: '', memoByDate: {}, lastDate: new Date().toDateString() };
       renderTasks();
       renderIdeas();
       renderReviewHistory();
-      document.getElementById('memo-text').value = '';
+      if (document.getElementById('tab-memo') && !document.getElementById('tab-memo').classList.contains('hidden')) {
+        initMemoSection();
+      } else {
+        document.getElementById('memo-text').value = '';
+      }
       document.getElementById('review-result').classList.add('hidden');
       document.getElementById('rewrite-result').classList.add('hidden');
     }
