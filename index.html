@@ -357,74 +357,84 @@
         <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
           <!-- 左侧：数据录入 -->
           <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
-            <h3 class="font-semibold text-slate-800 mb-5"><i class="fa-solid fa-pen-to-square text-brand-600 mr-2"></i>录入视频数据</h3>
-            <div class="space-y-4">
-              <div>
-                <label class="block text-sm font-medium text-slate-700 mb-1.5">视频标题 / 脚本方向</label>
-                <input id="rev-title" type="text" placeholder="例如：夏天办公室囤水指南" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500">
-              </div>
-              <div class="grid grid-cols-2 gap-4">
+            <h3 class="font-semibold text-slate-800 mb-5"><i class="fa-solid fa-pen-to-square text-brand-600 mr-2"></i>录入复盘数据</h3>
+            <div class="space-y-5">
+              <div class="space-y-4">
+                <h4 class="text-sm font-semibold text-slate-800 border-b border-slate-200 pb-2">脚本信息</h4>
                 <div>
-                  <label class="block text-sm font-medium text-slate-700 mb-1.5">发布日期</label>
-                  <input id="rev-pubdate" type="date" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500">
+                  <label class="block text-sm font-medium text-slate-700 mb-1.5">视频标题 / 脚本方向</label>
+                  <input id="rev-title" type="text" placeholder="例如：夏天办公室囤水指南" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500">
                 </div>
                 <div>
-                  <label class="block text-sm font-medium text-slate-700 mb-1.5">录入时间</label>
-                  <input id="rev-entertime" type="datetime-local" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500">
+                  <label class="block text-sm font-medium text-slate-700 mb-1.5">脚本内容 / 口播稿</label>
+                  <textarea id="rev-script" rows="4" placeholder="把脚本或口播稿贴到这里，复盘时结合数据一起看..." class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500 auto-resize" oninput="autoResize(this)"></textarea>
                 </div>
               </div>
-              <div class="grid grid-cols-2 gap-4">
-                <div>
-                  <label class="block text-sm font-medium text-slate-700 mb-1.5">播放量</label>
-                  <input id="rev-play" type="number" placeholder="0" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500">
+              <div class="space-y-4">
+                <h4 class="text-sm font-semibold text-slate-800 border-b border-slate-200 pb-2">数据表现</h4>
+                <div class="grid grid-cols-2 gap-4">
+                  <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">发布日期</label>
+                    <input id="rev-pubdate" type="date" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500">
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">录入时间</label>
+                    <input id="rev-entertime" type="datetime-local" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500">
+                  </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                  <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">播放量</label>
+                    <input id="rev-play" type="number" placeholder="0" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500">
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">点赞数</label>
+                    <input id="rev-like" type="number" placeholder="0" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500">
+                  </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                  <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">评论数</label>
+                    <input id="rev-comment" type="number" placeholder="0" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500">
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">转发数</label>
+                    <input id="rev-share" type="number" placeholder="0" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500">
+                  </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                  <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">完播率 (%)</label>
+                    <input id="rev-finish" type="number" step="0.1" placeholder="0" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500">
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">5秒完播率 (%)</label>
+                    <input id="rev-5s" type="number" step="0.1" placeholder="0" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500">
+                  </div>
+                </div>
+                <div class="grid grid-cols-3 gap-4">
+                  <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">CTR (%)</label>
+                    <input id="rev-ctr" type="number" step="0.01" placeholder="0" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500">
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">CVR (%)</label>
+                    <input id="rev-cvr" type="number" step="0.01" placeholder="0" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500">
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">ROI</label>
+                    <input id="rev-roi" type="number" step="0.01" placeholder="0" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500">
+                  </div>
                 </div>
                 <div>
-                  <label class="block text-sm font-medium text-slate-700 mb-1.5">点赞数</label>
-                  <input id="rev-like" type="number" placeholder="0" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500">
+                  <label class="block text-sm font-medium text-slate-700 mb-1.5">千川消耗（元）</label>
+                  <input id="rev-cost" type="number" placeholder="0" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500">
                 </div>
+                <button onclick="generateReview()" class="w-full py-3 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-medium transition-colors flex items-center justify-center">
+                  <i class="fa-solid fa-wand-magic-sparkles mr-2"></i>生成复盘报告
+                  <span class="info-tip ml-2" data-tip="根据你填写的播放量、完播率、CTR、CVR、ROI、千川消耗等数据，自动打分并给出问题诊断和下次优化方向。" onclick="event.stopPropagation()"><i class="fa-solid fa-circle-exclamation"></i></span>
+                </button>
               </div>
-              <div class="grid grid-cols-2 gap-4">
-                <div>
-                  <label class="block text-sm font-medium text-slate-700 mb-1.5">评论数</label>
-                  <input id="rev-comment" type="number" placeholder="0" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500">
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-slate-700 mb-1.5">转发数</label>
-                  <input id="rev-share" type="number" placeholder="0" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500">
-                </div>
-              </div>
-              <div class="grid grid-cols-2 gap-4">
-                <div>
-                  <label class="block text-sm font-medium text-slate-700 mb-1.5">完播率 (%)</label>
-                  <input id="rev-finish" type="number" step="0.1" placeholder="0" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500">
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-slate-700 mb-1.5">5秒完播率 (%)</label>
-                  <input id="rev-5s" type="number" step="0.1" placeholder="0" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500">
-                </div>
-              </div>
-              <div class="grid grid-cols-3 gap-4">
-                <div>
-                  <label class="block text-sm font-medium text-slate-700 mb-1.5">CTR (%)</label>
-                  <input id="rev-ctr" type="number" step="0.01" placeholder="0" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500">
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-slate-700 mb-1.5">CVR (%)</label>
-                  <input id="rev-cvr" type="number" step="0.01" placeholder="0" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500">
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-slate-700 mb-1.5">ROI</label>
-                  <input id="rev-roi" type="number" step="0.01" placeholder="0" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500">
-                </div>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-slate-700 mb-1.5">千川消耗（元）</label>
-                <input id="rev-cost" type="number" placeholder="0" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500">
-              </div>
-              <button onclick="generateReview()" class="w-full py-3 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-medium transition-colors flex items-center justify-center">
-                <i class="fa-solid fa-wand-magic-sparkles mr-2"></i>生成复盘报告
-                <span class="info-tip ml-2" data-tip="根据你填写的播放量、完播率、CTR、CVR、ROI、千川消耗等数据，自动打分并给出问题诊断和下次优化方向。" onclick="event.stopPropagation()"><i class="fa-solid fa-circle-exclamation"></i></span>
-              </button>
             </div>
           </div>
 
@@ -1511,6 +1521,7 @@ function copyOriginal() {
 
   function generateReview() {
     const title = document.getElementById('rev-title').value.trim() || '未命名视频';
+    const script = document.getElementById('rev-script').value.trim();
     const play = parseFloat(document.getElementById('rev-play').value) || 0;
     const like = parseFloat(document.getElementById('rev-like').value) || 0;
     const comment = parseFloat(document.getElementById('rev-comment').value) || 0;
@@ -1562,7 +1573,7 @@ function copyOriginal() {
     }
 
     const report = {
-      title, play, like, comment, share, finish, s5, ctr, cvr, roi, cost,
+      title, script, play, like, comment, share, finish, s5, ctr, cvr, roi, cost,
       pubDate, enterTime,
       engagementRate, likeRate, score, diagnosis, suggestions,
       date: new Date().toLocaleString('zh-CN')
@@ -1583,6 +1594,7 @@ function copyOriginal() {
     let scoreBg = report.score >= 80 ? 'bg-green-50' : report.score >= 60 ? 'bg-yellow-50' : 'bg-red-50';
 
     content.innerHTML = `
+      ${report.script ? `<div class="mb-3"><h4 class="font-semibold text-slate-800 mb-2 text-sm">📝 脚本内容</h4><div class="text-sm text-slate-700 bg-slate-50 p-3 rounded-lg max-h-[200px] overflow-y-auto whitespace-pre-wrap">${escapeHtml(report.script)}</div></div>` : ''}
       <div class="text-sm text-slate-500 flex flex-wrap gap-x-5 gap-y-1 mb-3">
         ${report.pubDate ? `<span>📅 发布日期：${report.pubDate}</span>` : ''}
         ${report.enterTime ? `<span>🕒 录入时间：${report.enterTime.replace('T', ' ')}</span>` : ''}
@@ -1637,6 +1649,7 @@ function copyOriginal() {
           <h4 class="font-medium text-slate-800 text-sm truncate max-w-[200px]">${r.title}</h4>
           <span class="text-xs text-slate-400">${r.enterTime ? '录入 ' + r.enterTime.replace('T', ' ') : (r.date.split(' ')[0])}${r.pubDate ? ' · 发布 ' + r.pubDate : ''}</span>
         </div>
+        ${r.script ? `<p class="text-xs text-slate-500 truncate mb-1">${escapeHtml(r.script).slice(0, 45)}${r.script.length > 45 ? '...' : ''}</p>` : ''}
         <div class="flex items-center gap-3 text-xs text-slate-500">
           <span>ROI ${r.roi}</span>
           <span>完播 ${r.finish}%</span>
