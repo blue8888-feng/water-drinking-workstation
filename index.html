@@ -770,12 +770,29 @@
     const resultBox = document.getElementById('rewrite-result');
     const content = document.getElementById('rewrite-content');
 
+    const hotClean = hot.title.replace(/全网都在挑战的\s*,?/, '').replace(/[“”"'']/g, '').trim();
+    const prodName = prod ? prod.name.replace(/（.*?）|\(.*?\)/g, '') : '';
+    const pointText = point || (prod ? prod.sp : '水源地就在苏州边上，喝着放心');
+
     const hooks = [
-      `别再${hot.title.replace('全网都在挑战的 ', '').replace('的', '')}了，真正会喝水的人都在看这一点。`,
-      `最近${hot.title}很火，但没人告诉你，选错水等于白喝。`,
-      `${hot.title}我试了，结论只有一个：水和水真的不一样。`
+      `(对着镜头晃晃手里的瓶子)你刷到「${hotClean}」那个梗没？我昨天真试了一把，发现自己好些年水都白喝了。`,
+      `(压低声音，像说悄悄话)最近「${hotClean}」这么火不是没道理的。但我跟你讲句大实话——喝水这事儿，门道比你想得多。`,
+      `(苦笑)我妈又念叨我喝水不讲究。行，今天我就用${shop}这款，让她看看啥叫"会过日子的人"。`
     ];
     const hook = hooks[Math.floor(Math.random() * hooks.length)];
+
+    const scenes = [
+      `你想啊，半夜起来渴得不行，摸黑接自来水灌一口，第二天嗓子发干。我现在床头常备${prodName || shop+'这款'}，渴了拧开就喝，省事还放心。`,
+      `带娃的应该懂我意思——半夜冲奶最怕水质不干净。${prodName || shop+'这款'}我专门用来冲奶，宝宝肯喝，我也安心。`,
+      `办公室下午三四点最困，奶茶喝多了腻还长肉。我工位底下囤一箱${prodName || shop+'这款'}，困了来一瓶，比咖啡舒服。`,
+      `健身完那一身汗，最想来口凉的。我现在不直接灌冰自来水了，先整瓶${prodName || shop+'这款'}缓一缓，胃里舒服多了。`,
+      `夏天水放两天就有味儿，你肯定也烦。换了${prodName || shop+'这款'}之后，放多久都清清爽爽，烧饭煮茶都敢用。`
+    ];
+    const scene = scenes[Math.floor(Math.random() * scenes.length)];
+
+    const cta = prod
+      ? `${prodName}就挂左下角小黄车了，我自个儿家就在喝。${prod.activity ? prod.activity + '，' : ''}想要的自己去拍，好水自己会说话。`
+      : `${shop}这款就挂左下角了，苏州本地发的，隔天就到。懒得挑的直接拍链接里的组合，划算。`;
 
     content.innerHTML = `
       <div class="script-box p-4 rounded-xl">
@@ -783,23 +800,23 @@
         <p class="text-sm text-slate-700">原热点：<span class="font-medium">${hot.title}</span>（${hot.tag}）</p>
         <p class="text-sm text-slate-700 mt-1">适配店铺：<span class="font-medium">${shop}</span></p>
         ${prod ? `<p class="text-sm text-slate-700 mt-1">挂车商品：<span class="font-medium">${prod.name}（${prod.brand}）</span>${prod.price ? ' · 管控价 ' + prod.price : ''}${prod.activity ? ' · ' + prod.activity : ''}</p>` : ''}
-        <p class="text-sm text-slate-700 mt-1">核心卖点：<span class="font-medium">${point || (prod ? prod.sp : '天然好水 / 品质饮水')}</span></p>
+        <p class="text-sm text-slate-700 mt-1">核心卖点：<span class="font-medium">${pointText}</span></p>
       </div>
       <div>
-        <h4 class="font-semibold text-slate-800 mb-2 text-sm">⏱ 0-3 秒 黄金钩子</h4>
+        <h4 class="font-semibold text-slate-800 mb-2 text-sm">⏱ 0-3 秒 钩子（对着镜头自然说，别念稿）</h4>
         <p class="text-sm text-slate-700 bg-slate-50 p-3 rounded-lg">${hook}</p>
       </div>
       <div>
-        <h4 class="font-semibold text-slate-800 mb-2 text-sm">⏱ 3-15 秒 冲突/场景</h4>
-        <p class="text-sm text-slate-700 bg-slate-50 p-3 rounded-lg">画面：${shop}的产品入镜，与常见场景结合（办公室/厨房/后备箱）。<br>口播：很多人买水只看价格，但其实水源地、矿物质、pH 值才是关键。</p>
+        <h4 class="font-semibold text-slate-800 mb-2 text-sm">⏱ 3-15 秒 场景带入</h4>
+        <p class="text-sm text-slate-700 bg-slate-50 p-3 rounded-lg">${scene}<br>顺嘴带一句：${pointText}</p>
       </div>
       <div>
-        <h4 class="font-semibold text-slate-800 mb-2 text-sm">⏱ 15-30 秒 卖点可视化</h4>
-        <p class="text-sm text-slate-700 bg-slate-50 p-3 rounded-lg">展示 ${point || '天然水源'} 的差异化画面：水源地实拍 / 泡茶对比 / 宝宝饮水场景 / 运动后补水特写。每 5 秒切一个画面，保持节奏。</p>
+        <h4 class="font-semibold text-slate-800 mb-2 text-sm">⏱ 15-30 秒 画面给证据</h4>
+        <p class="text-sm text-slate-700 bg-slate-50 p-3 rounded-lg">别光说，切真实画面：接水特写 / 泡茶对比 / 宝宝喝水 / 运动完补一口。每切一个镜头配一句大白话，别堆满字幕。</p>
       </div>
       <div>
-        <h4 class="font-semibold text-slate-800 mb-2 text-sm">⏱ 30-45 秒 结尾 CTA</h4>
-        <p class="text-sm text-slate-700 bg-slate-50 p-3 rounded-lg">口播：${prod ? `${prod.name.replace(/（.*?）|\(.*?\)/g, '')}就在左下角小黄车，${prod.activity ? prod.activity + '，' : ''}现在下单囤一箱慢慢喝。` : `${shop} 现在下单，链接就在左下角，囤一箱慢慢喝。`}<br>字幕：点击小黄车${prod && prod.price ? ' / 到手 ' + prod.price : ' / 限时优惠'} / 苏州本地发货</p>
+        <h4 class="font-semibold text-slate-800 mb-2 text-sm">⏱ 30-45 秒 收尾引导</h4>
+        <p class="text-sm text-slate-700 bg-slate-50 p-3 rounded-lg">${cta}${prod && prod.price ? '<br>字幕打：到手 ' + prod.price + ' / 苏州本地发' : '<br>字幕打：点击小黄车 / 苏州本地发'}</p>
       </div>
       <div>
         <h4 class="font-semibold text-slate-800 mb-2 text-sm">🏷 建议标签</h4>
@@ -883,31 +900,52 @@
     const resultBox = document.getElementById('original-result');
     const content = document.getElementById('original-content');
 
-    const hook = `「${idea.title}」——听起来是个老生常谈的话题，但真正把细节做对的人并不多。`;
+    const ideaTitle = idea.title;
+    const prodName = prod ? prod.name.replace(/（.*?）|\(.*?\)/g, '') : '';
+    const pointText = point || (prod ? prod.sp : '水源地就在苏州边上，喝着放心');
+
+    const hooks = [
+      `(对着镜头，像突然想到)哎我跟你说个事儿——「${ideaTitle}」这问题，我以前也没当回事，后来自己踩了坑才上心。`,
+      `(举着水)你有没有过那种时候：${ideaTitle} 想了半天还是随便凑合？今天我就把这事儿说明白。`,
+      `(叹气)每次有人问我「${ideaTitle}」，我都想直接把我家那箱水拍他脸上。来，今天好好唠唠。`
+    ];
+    const hook = hooks[Math.floor(Math.random() * hooks.length)];
+
+    const scenes = [
+      `咱说点实在的。早上起来那第一杯水，我都是直接喝${prodName || shop+'这款'}，不凉不烫正合适，一天状态都好点。`,
+      `出门露营野餐，我背包里必塞两瓶${prodName || shop+'这款'}。别家水喝着发涩，这个清爽，朋友都来抢。`,
+      `我家现在烧饭煮茶全用它——${prodName || shop+'这款'}。煮出来的汤、泡出来的茶，味道就是不一样，你也试试就知道了。`,
+      `孩子他妈挑水特别挑，结果现在全家都认${prodName || shop+'这款'}。说白了，入口的东西，还是得讲究点。`
+    ];
+    const scene = scenes[Math.floor(Math.random() * scenes.length)];
+
+    const cta = prod
+      ? `${prodName}就挂左下角了，我自己天天喝。${prod.activity ? prod.activity + '，' : ''}觉得有用的自己去拍，不喜欢划走就行。`
+      : `${shop}这款挂左下角，苏州本地发，隔天到。喜欢的朋友点个小黄车， thanks～`;
 
     content.innerHTML = `
       <div class="script-box p-4 rounded-xl">
         <h4 class="font-semibold text-brand-800 mb-2 text-sm">🎯 创作主题</h4>
-        <p class="text-sm text-slate-700">灵感：${idea.title}（${idea.direction || '通用'}）</p>
+        <p class="text-sm text-slate-700">灵感：${ideaTitle}（${idea.direction || '通用'}）</p>
         <p class="text-sm text-slate-700 mt-1">适配店铺：<span class="font-medium">${shop}</span></p>
         ${prod ? `<p class="text-sm text-slate-700 mt-1">挂车商品：<span class="font-medium">${prod.name}（${prod.brand}）</span>${prod.price ? ' · 管控价 ' + prod.price : ''}${prod.activity ? ' · ' + prod.activity : ''}</p>` : ''}
-        <p class="text-sm text-slate-700 mt-1">核心卖点：<span class="font-medium">${point || (prod ? prod.sp : '天然好水 / 品质饮水')}</span></p>
+        <p class="text-sm text-slate-700 mt-1">核心卖点：<span class="font-medium">${pointText}</span></p>
       </div>
       <div>
-        <h4 class="font-semibold text-slate-800 mb-2 text-sm">⏱ 0-3 秒 黄金钩子</h4>
+        <h4 class="font-semibold text-slate-800 mb-2 text-sm">⏱ 0-3 秒 钩子（像跟朋友唠嗑，别端着）</h4>
         <p class="text-sm text-slate-700 bg-slate-50 p-3 rounded-lg">${hook}</p>
       </div>
       <div>
-        <h4 class="font-semibold text-slate-800 mb-2 text-sm">⏱ 3-20 秒 主题展开</h4>
-        <p class="text-sm text-slate-700 bg-slate-50 p-3 rounded-lg">画面：${shop}场景化呈现（厨房泡茶水 / 办公室补水 / 宝宝冲奶 / 运动后）。<br>口播：今天聊一个被忽略的细节——${point || '好水的标准不只是解渴'}。${shop}一直坚持做的是让每一口水都更放心。</p>
+        <h4 class="font-semibold text-slate-800 mb-2 text-sm">⏱ 3-20 秒 讲个真事儿</h4>
+        <p class="text-sm text-slate-700 bg-slate-50 p-3 rounded-lg">${scene}<br>顺嘴带卖点：${pointText}</p>
       </div>
       <div>
-        <h4 class="font-semibold text-slate-800 mb-2 text-sm">⏱ 20-35 秒 卖点可视化</h4>
-        <p class="text-sm text-slate-700 bg-slate-50 p-3 rounded-lg">展示 ${point || '天然水源'} 的差异化画面：水源地实拍 / 泡茶对比 / 冲泡奶粉 / 家庭囤水。每 5 秒一切，配合字幕点出关键信息。</p>
+        <h4 class="font-semibold text-slate-800 mb-2 text-sm">⏱ 20-35 秒 给画面</h4>
+        <p class="text-sm text-slate-700 bg-slate-50 p-3 rounded-lg">切真实镜头：倒水 / 泡茶 / 野餐摆拍 / 一家人喝。别说教，让画面替你说话。</p>
       </div>
       <div>
-        <h4 class="font-semibold text-slate-800 mb-2 text-sm">⏱ 35-45 秒 结尾 CTA</h4>
-        <p class="text-sm text-slate-700 bg-slate-50 p-3 rounded-lg">口播：${prod ? `${prod.name.replace(/（.*?）|\(.*?\)/g, '')}就在左下角小黄车，${prod.activity ? prod.activity + '，' : ''}现在下单囤一箱慢慢喝。` : `${shop} 现在下单，链接就在左下角，囤一箱慢慢喝。`}<br>字幕：点击小黄车${prod && prod.price ? ' / 到手 ' + prod.price : ' / 限时优惠'} / 苏州本地发货</p>
+        <h4 class="font-semibold text-slate-800 mb-2 text-sm">⏱ 35-45 秒 收尾</h4>
+        <p class="text-sm text-slate-700 bg-slate-50 p-3 rounded-lg">${cta}${prod && prod.price ? '<br>字幕打：到手 ' + prod.price : ''}</p>
       </div>
       <div>
         <h4 class="font-semibold text-slate-800 mb-2 text-sm">🏷 建议标签</h4>
@@ -1160,33 +1198,33 @@
     let diagnosis = [];
     let suggestions = [];
 
-    // 完播率评分
+    // 完播率
     if (finish >= 30) { score += 30; }
-    else if (finish >= 20) { score += 20; diagnosis.push('完播率中等，中段可能有拖沓。'); suggestions.push('压缩 5-15 秒的非核心画面，加快节奏。'); }
-    else if (finish > 0) { score += 10; diagnosis.push('完播率偏低，视频节奏或卖点呈现有问题。'); suggestions.push('重新设计前 3 秒钩子，每 5 秒给一个新刺激。'); }
+    else if (finish >= 20) { score += 20; diagnosis.push('完播还行，但中间那段估计有点拖，不少人看到一半划走了。'); suggestions.push('中间那段能砍就砍，节奏提起来，别让观众干等。'); }
+    else if (finish > 0) { score += 10; diagnosis.push('完播有点惨，节奏或者卖点没接住人。'); suggestions.push('开头 3 秒重拍，每 5 秒塞一个新东西勾着，别平铺直叙。'); }
 
     // 5秒完播
     if (s5 >= 50) { score += 25; }
-    else if (s5 >= 35) { score += 15; diagnosis.push('5 秒完播一般，开场吸引力不足。'); suggestions.push('开头用强冲突/反常识/利益点，前 3 秒不要介绍品牌。'); }
-    else if (s5 > 0) { score += 5; diagnosis.push('5 秒完播很低，开头没有留住人。'); suggestions.push('重拍开头：用痛点提问、震撼画面或数字冲突。'); }
+    else if (s5 >= 35) { score += 15; diagnosis.push('开头 5 秒留不住人，点进来的欲望不够强。'); suggestions.push('封面字放大、脸上情绪给足；前 3 秒别先报品牌，先给冲突或好处。'); }
+    else if (s5 > 0) { score += 5; diagnosis.push('前 5 秒基本留不住，开头就跑人了。'); suggestions.push('重拍开头，用提问、反常识或者扎心数字把人钉住。'); }
 
     // CTR
     if (ctr >= 3) { score += 25; }
-    else if (ctr >= 1.5) { score += 15; diagnosis.push('CTR 一般，封面/标题/前 3 秒点击欲望不足。'); suggestions.push('封面加大字体和人物情绪；标题前 10 个字要有冲突或利益。'); }
-    else if (ctr > 0) { score += 5; diagnosis.push('CTR 偏低，素材点击吸引力弱。'); suggestions.push('参考爆款热点的标题和封面形式做 A/B 测试。'); }
+    else if (ctr >= 1.5) { score += 15; diagnosis.push('点击率一般，封面标题差点意思，别人刷到不想点。'); suggestions.push('封面大字+真人表情；标题前 10 个字就得有钩子（冲突或利益）。'); }
+    else if (ctr > 0) { score += 5; diagnosis.push('点击率偏低，这素材对外没啥吸引力。'); suggestions.push('翻翻爆款那个标题封面套路，照着 A/B 测两版。'); }
 
     // CVR
     if (cvr >= 2) { score += 20; }
-    else if (cvr >= 0.8) { score += 10; diagnosis.push('CVR 一般，卖点或购买指令不够清晰。'); suggestions.push('结尾 CTA 更明确：限时、限量、立即拍；产品链接前 5 秒不要出现。'); }
-    else if (cvr > 0) { score += 5; diagnosis.push('CVR 低，流量来了但转化差。'); suggestions.push('检查商品详情页、价格、评价；视频里强化信任背书和促销信息。'); }
+    else if (cvr >= 0.8) { score += 10; diagnosis.push('转化一般，卖点或者下单指令没说透。'); suggestions.push('结尾 CTA 说死：限时、限量、现在拍；产品链接前 5 秒别出现。'); }
+    else if (cvr > 0) { score += 5; diagnosis.push('有流量没转化，人来了不下单。'); suggestions.push('查下详情页、价格、评价；视频里多给信任感和促销信息。'); }
 
     // ROI
     if (roi >= 2) { score += 10; }
-    else if (roi > 0) { diagnosis.push('ROI 未达 2，需要优化投放人群或素材。'); suggestions.push('降低通投比例，测试精准人群：母婴、运动、茶饮爱好者。'); }
+    else if (roi > 0) { diagnosis.push('ROI 没过 2，这波钱花得有点亏。'); suggestions.push('别通投了，试试精准人群：宝妈、健身的、爱喝茶的。'); }
 
     if (diagnosis.length === 0) {
-      diagnosis.push('整体数据健康，具备放量潜力。');
-      suggestions.push('可小幅加预算测试；同时复制脚本结构做同类延展。');
+      diagnosis.push('这数据挺健康，可以冲量了。');
+      suggestions.push('小加预算测一波；顺手把脚本结构复制给同类选题接着用。');
     }
 
     const report = {
