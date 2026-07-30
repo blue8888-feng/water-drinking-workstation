@@ -894,6 +894,37 @@
       + '<span>本地模板生成</span></div>';
   }
 
+  function reviewAiBadge(report) {
+    if (report.aiAnalyzed) {
+      const labelMap = { deepseek: 'DeepSeek', doubao: '豆包', zhipu: '智谱AI', siliconflow: '硅基流动', custom: '自定义模型' };
+      const ai = appData.ai || {};
+      const label = labelMap[ai.provider] || (ai.provider ? ai.provider : 'AI 大模型');
+      const model = report.aiModel || ai.model || '';
+      return '<div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-sky-50 text-sky-700 border border-sky-200">'
+        + '<i class="fa-solid fa-robot"></i>'
+        + '<span>AI 诊断 · ' + escapeHtml(label) + (model ? ' · ' + escapeHtml(model) : '') + '</span></div>';
+    }
+    return '<div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-500 border border-slate-200">'
+      + '<i class="fa-solid fa-sliders"></i>'
+      + '<span>本地规则分析</span></div>';
+  }
+
+  function parseAiDiagnosis(text) {
+    const lines = (text || '').split(/\n/).map(l => l.trim()).filter(l => l);
+    const diagnosis = [];
+    const suggestions = [];
+    let mode = null;
+    for (const line of lines) {
+      if (/^(问题诊断|诊断|问题)/.test(line)) { mode = 'd'; continue; }
+      if (/^(下次优化建议|优化建议|建议|优化方向)/.test(line)) { mode = 's'; continue; }
+      const cleaned = line.replace(/^[-*•·\d+\.\)\]]+\s*/, '').trim();
+      if (!cleaned) continue;
+      if (mode === 'd') diagnosis.push(cleaned);
+      else if (mode === 's') suggestions.push(cleaned);
+    }
+    return { diagnosis, suggestions };
+  }
+
   function renderRewriteHead(shop, hot, prod, pointText, prodName) {
     return `
       <div class="script-box p-4 rounded-xl">
@@ -1570,7 +1601,7 @@ function copyOriginal() {
     if (et && !et.value) et.value = nowLocal;
   }
 
-  function generateReview() {
+  async function generateReview() {
     const title = document.getElementById('rev-title').value.trim() || '未命名视频';
     const script = document.getElementById('rev-script').value.trim();
     const play = parseFloat(document.getElementById('rev-play').value) || 0;
@@ -1627,6 +1658,7 @@ function copyOriginal() {
       title, script, play, like, comment, share, finish, s5, ctr, cvr, roi, cost,
       pubDate, enterTime,
       engagementRate, likeRate, score, diagnosis, suggestions,
+      aiAnalyzed: false,
       date: new Date().toLocaleString('zh-CN')
     };
 
@@ -1635,6 +1667,46 @@ function copyOriginal() {
 
     renderReviewReport(report);
     renderReviewHistory();
+
+    // 若已配置 AI，调用大模型增强诊断与建议
+    if (aiReady()) {
+      try {
+        const system = `你是抖音电商短视频复盘专家。请根据用户提供的视频脚本内容和数据指标，给出精准、口语化、可执行的问题诊断和优化建议。要求：
+1. 问题诊断 2-4 条，聚焦脚本本身（开头钩子、节奏、卖点表达、CTA）和数据短板。
+2. 下次优化建议 2-4 条，对应诊断，给出具体可执行动作。
+3. 输出格式严格如下：
+问题诊断：
+- ...
+- ...
+下次优化建议：
+- ...
+- ...`;
+        const userPrompt = `视频标题：${title}
+脚本内容：
+"""
+${script || '未填写'}
+"""
+数据表现：播放量 ${play.toLocaleString()}，完播率 ${finish}%，5 秒完播率 ${s5}%，CTR ${ctr}%，CVR ${cvr}%，ROI ${roi}，千川消耗 ¥${cost.toLocaleString()}，互动率 ${engagementRate}%，点赞率 ${likeRate}%。
+本地规则初步判断：${diagnosis.join('；')}。优化方向：${suggestions.join('；')}。
+请输出诊断与建议。`;
+        const out = await callLLM(system, userPrompt);
+        const parsed = parseAiDiagnosis(out);
+        if (parsed.diagnosis.length && parsed.suggestions.length) {
+          report.diagnosis = parsed.diagnosis;
+          report.suggestions = parsed.suggestions;
+          report.aiAnalyzed = true;
+          report.aiModel = (appData.ai || {}).model || '';
+          saveData(appData);
+          renderReviewReport(report);
+          renderReviewHistory();
+        } else {
+          console.warn('AI 复盘返回格式无法解析，已使用本地分析');
+        }
+      } catch (e) {
+        console.error('AI 复盘失败', e);
+        showToast('AI 诊断失败：' + e.message + '，已使用本地分析');
+      }
+    }
   }
 
   function renderReviewReport(report) {
@@ -1672,7 +1744,10 @@ function copyOriginal() {
         </div>
       </div>
       <div>
-        <h4 class="font-semibold text-slate-800 mb-2 text-sm">🔍 问题诊断</h4>
+        <div class="flex items-center justify-between mb-2">
+          <h4 class="font-semibold text-slate-800 text-sm">🔍 问题诊断</h4>
+          ${reviewAiBadge(report)}
+        </div>
         <ul class="space-y-2">
           ${report.diagnosis.map(d => `<li class="text-sm text-slate-700 bg-slate-50 p-3 rounded-lg"><i class="fa-solid fa-circle-exclamation text-orange-500 mr-2"></i>${d}</li>`).join('')}
         </ul>
@@ -1695,9 +1770,12 @@ function copyOriginal() {
       return;
     }
     container.innerHTML = appData.reviews.map((r, i) => `
-      <div class="p-4 bg-slate-50 rounded-xl cursor-pointer hover:bg-slate-100 transition-colors" onclick="viewReview(${i})">
+      <div class="p-4 bg-slate-50 rounded-xl cursor-pointer hover:bg-slate-100 transition-colors group" onclick="viewReview(${i})">
         <div class="flex items-center justify-between mb-1">
-          <h4 class="font-medium text-slate-800 text-sm truncate max-w-[200px]">${r.title}</h4>
+          <div class="flex items-center gap-2 min-w-0">
+            <h4 class="font-medium text-slate-800 text-sm truncate max-w-[200px]">${r.title}</h4>
+            <span class="text-xs text-brand-600 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">查看详情 →</span>
+          </div>
           <span class="text-xs text-slate-400">${r.enterTime ? '录入 ' + r.enterTime.replace('T', ' ') : (r.date.split(' ')[0])}${r.pubDate ? ' · 发布 ' + r.pubDate : ''}</span>
         </div>
         ${r.script ? `<p class="text-xs text-slate-500 truncate mb-1">${escapeHtml(r.script).slice(0, 45)}${r.script.length > 45 ? '...' : ''}</p>` : ''}
@@ -1712,6 +1790,10 @@ function copyOriginal() {
 
   function viewReview(index) {
     renderReviewReport(appData.reviews[index]);
+    const box = document.getElementById('review-result');
+    if (box && !box.classList.contains('hidden')) {
+      box.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
   }
 
   // ================= 备忘录 =================
