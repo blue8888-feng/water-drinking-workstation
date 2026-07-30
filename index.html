@@ -830,6 +830,21 @@
     return out;
   }
 
+  function modelBadgeHtml(source) {
+    const ai = appData.ai || {};
+    if (source === 'ai' && ai.enabled && ai.apiKey && ai.model) {
+      const labelMap = { deepseek: 'DeepSeek', doubao: '豆包', custom: '自定义模型' };
+      const label = labelMap[ai.provider] || (ai.provider ? ai.provider : 'AI 大模型');
+      const model = ai.model || '';
+      return '<div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-sky-50 text-sky-700 border border-sky-200 mb-1">'
+        + '<i class="fa-solid fa-robot"></i>'
+        + '<span>由 ' + label + (model ? ' · ' + model : '') + ' 生成</span></div>';
+    }
+    return '<div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-500 border border-slate-200 mb-1">'
+      + '<i class="fa-solid fa-feather-pointed"></i>'
+      + '<span>本地模板生成</span></div>';
+  }
+
   function renderRewriteHead(shop, hot, prod, pointText, prodName) {
     return `
       <div class="script-box p-4 rounded-xl">
@@ -980,18 +995,18 @@
       const cta = prod
         ? `${prodName}就挂左下角小黄车了，我自个儿家就在喝。${prod.activity ? prod.activity + '，' : ''}想要的自己去拍，好水自己会说话。`
         : `${shop}这款就挂左下角了，苏州本地发的，隔天就到。懒得挑的直接拍链接里的组合，划算。`;
-      content.innerHTML = headHtml + renderRewriteBodyLocal(hook, scene, cta, pointText, prod, shop, hot);
+      content.innerHTML = modelBadgeHtml('local') + headHtml + renderRewriteBodyLocal(hook, scene, cta, pointText, prod, shop, hot);
       resultBox.classList.remove('hidden');
       return;
     }
 
     resultBox.classList.remove('hidden');
-    content.innerHTML = headHtml + '<div class="text-sm text-slate-400 bg-slate-50 p-3 rounded-lg">🤖 AI 正在生成脚本，稍候…</div>';
+    content.innerHTML = '<div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200 mb-1"><i class="fa-solid fa-spinner fa-spin"></i><span>AI 生成中…</span></div>' + headHtml + '<div class="text-sm text-slate-400 bg-slate-50 p-3 rounded-lg">🤖 AI 正在生成脚本，稍候…</div>';
     const sys = '你是抖音电商短视频脚本专家，深耕水饮/食品类目。请输出口语化、有真实生活场景、去AI味的口播稿，像真人在跟朋友唠嗑，不要书面腔和套话。';
     const user = `【热点】${hot.title}（标签：${hot.tag}）\n【店铺】${shop}\n${prod ? '【商品】' + prod.name + '（' + prod.brand + '）' + (prod.price ? ' 管控价 ' + prod.price : '') + (prod.activity ? ' ' + prod.activity : '') + '\n' : ''}【要突出的卖点】${pointText}\n\n请基于以上生成一条抖音口播脚本：\n- 口语化、像真人和朋友唠嗑，别端着、别堆书面词\n- 结构：0-3秒钩子 / 场景带入 / 画面证据 / 收尾引导（挂小黄车）\n- 把卖点自然带进去，结尾软一点，不硬劝\n- 最后一行给 5 个话题标签，格式「#标签1 #标签2 …」`;
     try {
       const out = await callLLM(sys, user);
-      content.innerHTML = headHtml + renderAiBody(out, fallbackTags);
+      content.innerHTML = modelBadgeHtml('ai') + headHtml + renderAiBody(out, fallbackTags);
     } catch (e) {
       showToast('AI 生成失败：' + e.message + '，已用本地模板');
       const hooks = [
@@ -1011,7 +1026,7 @@
       const cta = prod
         ? `${prodName}就挂左下角小黄车了，我自个儿家就在喝。${prod.activity ? prod.activity + '，' : ''}想要的自己去拍，好水自己会说话。`
         : `${shop}这款就挂左下角了，苏州本地发的，隔天就到。懒得挑的直接拍链接里的组合，划算。`;
-      content.innerHTML = headHtml + renderRewriteBodyLocal(hook, scene, cta, pointText, prod, shop, hot);
+      content.innerHTML = modelBadgeHtml('local') + headHtml + renderRewriteBodyLocal(hook, scene, cta, pointText, prod, shop, hot);
     }
   }
 
@@ -1106,18 +1121,18 @@ function copyRewrite() {
       const cta = prod
         ? `${prodName}就挂左下角了，我自己天天喝。${prod.activity ? prod.activity + '，' : ''}觉得有用的自己去拍，不喜欢划走就行。`
         : `${shop}这款挂左下角，苏州本地发，隔天到。喜欢的朋友点个小黄车， thanks～`;
-      content.innerHTML = headHtml + renderOriginalBodyLocal(hook, scene, cta, pointText, prod, shop, idea);
+      content.innerHTML = modelBadgeHtml('local') + headHtml + renderOriginalBodyLocal(hook, scene, cta, pointText, prod, shop, idea);
       resultBox.classList.remove('hidden');
       return;
     }
 
     resultBox.classList.remove('hidden');
-    content.innerHTML = headHtml + '<div class="text-sm text-slate-400 bg-slate-50 p-3 rounded-lg">🤖 AI 正在生成脚本，稍候…</div>';
+    content.innerHTML = '<div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200 mb-1"><i class="fa-solid fa-spinner fa-spin"></i><span>AI 生成中…</span></div>' + headHtml + '<div class="text-sm text-slate-400 bg-slate-50 p-3 rounded-lg">🤖 AI 正在生成脚本，稍候…</div>';
     const sys = '你是抖音电商短视频脚本专家，深耕水饮/食品类目。请输出口语化、有真实生活场景、去AI味的口播稿，像真人在跟朋友唠嗑，不要书面腔和套话。';
     const user = `【灵感主题】${ideaTitle}（方向：${idea.direction || '通用'}）\n【店铺】${shop}\n${prod ? '【商品】' + prod.name + '（' + prod.brand + '）' + (prod.price ? ' 管控价 ' + prod.price : '') + (prod.activity ? ' ' + prod.activity : '') + '\n' : ''}【要突出的卖点】${pointText}\n\n请基于以上生成一条抖音原创口播脚本：\n- 口语化、像真人和朋友唠嗑，别端着、别堆书面词\n- 结构：0-3秒钩子 / 讲个真事儿 / 给画面 / 收尾引导（挂小黄车）\n- 把卖点自然带进去，结尾软一点，不硬劝\n- 最后一行给 5 个话题标签，格式「#标签1 #标签2 …」`;
     try {
       const out = await callLLM(sys, user);
-      content.innerHTML = headHtml + renderAiBody(out, fallbackTags);
+      content.innerHTML = modelBadgeHtml('ai') + headHtml + renderAiBody(out, fallbackTags);
     } catch (e) {
       showToast('AI 生成失败：' + e.message + '，已用本地模板');
       const hooks = [
@@ -1136,7 +1151,7 @@ function copyRewrite() {
       const cta = prod
         ? `${prodName}就挂左下角了，我自己天天喝。${prod.activity ? prod.activity + '，' : ''}觉得有用的自己去拍，不喜欢划走就行。`
         : `${shop}这款挂左下角，苏州本地发，隔天到。喜欢的朋友点个小黄车， thanks～`;
-      content.innerHTML = headHtml + renderOriginalBodyLocal(hook, scene, cta, pointText, prod, shop, idea);
+      content.innerHTML = modelBadgeHtml('local') + headHtml + renderOriginalBodyLocal(hook, scene, cta, pointText, prod, shop, idea);
     }
   }
 
