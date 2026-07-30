@@ -365,6 +365,25 @@
                   <label class="block text-sm font-medium text-slate-700 mb-1.5">视频标题 / 脚本方向</label>
                   <input id="rev-title" type="text" placeholder="例如：夏天办公室囤水指南" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500">
                 </div>
+                <div class="grid grid-cols-2 gap-4">
+                  <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">所属店铺</label>
+                    <select id="rev-shop-select" onchange="onReviewShopChange()" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500">
+                      <option value="洞庭山官方旗舰店">洞庭山官方旗舰店</option>
+                      <option value="洞庭山泉官方旗舰店">洞庭山泉官方旗舰店</option>
+                      <option value="蘇泉水饮旗舰店">蘇泉水饮旗舰店</option>
+                      <option value="好水严选">好水严选</option>
+                      <option value="虎丘官方旗舰店">虎丘官方旗舰店</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">挂车商品 <span class="text-xs text-slate-400 font-normal">（可选）</span></label>
+                    <select id="rev-product-select" onchange="onReviewProductChange()" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500">
+                      <option value="">不指定商品</option>
+                    </select>
+                    <p id="rev-product-meta" class="hidden text-xs text-slate-500 mt-1.5 bg-slate-50 rounded-lg px-3 py-2"></p>
+                  </div>
+                </div>
                 <div>
                   <label class="block text-sm font-medium text-slate-700 mb-1.5">脚本内容 / 口播稿</label>
                   <textarea id="rev-script" rows="4" placeholder="把脚本或口播稿贴到这里，复盘时结合数据一起看..." class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500 auto-resize" oninput="autoResize(this)"></textarea>
@@ -430,10 +449,15 @@
                   <label class="block text-sm font-medium text-slate-700 mb-1.5">千川消耗（元）</label>
                   <input id="rev-cost" type="number" placeholder="0" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500">
                 </div>
-                <button onclick="generateReview()" class="w-full py-3 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-medium transition-colors flex items-center justify-center">
-                  <i class="fa-solid fa-wand-magic-sparkles mr-2"></i>生成复盘报告
-                  <span class="info-tip ml-2" data-tip="根据你填写的播放量、完播率、CTR、CVR、ROI、千川消耗等数据，自动打分并给出问题诊断和下次优化方向。" onclick="event.stopPropagation()"><i class="fa-solid fa-circle-exclamation"></i></span>
-                </button>
+                <div id="rev-action-bar" class="space-y-2">
+                  <button id="rev-submit-btn" onclick="generateReview()" class="w-full py-3 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-medium transition-colors flex items-center justify-center">
+                    <i class="fa-solid fa-wand-magic-sparkles mr-2"></i><span id="rev-submit-text">生成复盘报告</span>
+                    <span class="info-tip ml-2" data-tip="根据你填写的播放量、完播率、CTR、CVR、ROI、千川消耗等数据，自动打分并给出问题诊断和下次优化方向。" onclick="event.stopPropagation()"><i class="fa-solid fa-circle-exclamation"></i></span>
+                  </button>
+                  <button id="rev-cancel-edit-btn" onclick="cancelEditReview()" class="hidden w-full py-2.5 bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 rounded-xl text-sm font-medium transition-colors">
+                    取消编辑
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -441,7 +465,12 @@
           <!-- 右侧：复盘报告 -->
           <div class="space-y-6">
             <div id="review-result" class="hidden bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
-              <h3 class="font-semibold text-slate-800 mb-4">复盘诊断报告</h3>
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="font-semibold text-slate-800">复盘诊断报告</h3>
+                <button id="review-edit-btn" class="text-xs px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-slate-600 hover:text-brand-600 hover:border-brand-300 transition-colors">
+                  <i class="fa-solid fa-pen-to-square mr-1"></i>编辑
+                </button>
+              </div>
               <div id="review-content" class="space-y-4"></div>
             </div>
 
@@ -1599,11 +1628,48 @@ function copyOriginal() {
     if (pd && !pd.value) pd.value = today;
     const et = document.getElementById('rev-entertime');
     if (et && !et.value) et.value = nowLocal;
+    // 默认店铺已写在 HTML，这里初始化商品下拉
+    populateReviewProductSelect(document.getElementById('rev-shop-select').value);
+  }
+
+  let currentReviewReport = null;
+  let editingReviewIndex = null;
+
+  function populateReviewProductSelect(shop) {
+    const sel = document.getElementById('rev-product-select');
+    const prev = sel.value;
+    const list = PRODUCTS.filter(p => productShops(p).includes(shop));
+    sel.innerHTML = '<option value="">不指定商品</option>' +
+      list.map(p => `<option value="${p.id}">${p.name}（${p.brand}）</option>`).join('');
+    if (list.some(p => p.id === prev)) sel.value = prev;
+  }
+
+  function onReviewShopChange() {
+    populateReviewProductSelect(document.getElementById('rev-shop-select').value);
+    document.getElementById('rev-product-meta').classList.add('hidden');
+  }
+
+  function onReviewProductChange() {
+    const id = document.getElementById('rev-product-select').value;
+    const meta = document.getElementById('rev-product-meta');
+    if (!id) { meta.classList.add('hidden'); return; }
+    const p = getProd(id);
+    const parts = [];
+    if (p.price) parts.push('管控价：' + p.price);
+    if (p.activity) parts.push('活动：' + p.activity);
+    parts.push('卖点：' + p.sp);
+    meta.innerHTML = '<i class="fa-solid fa-circle-info mr-1 text-brand-500"></i>' + parts.join(' · ');
+    meta.classList.remove('hidden');
   }
 
   async function generateReview() {
     const title = document.getElementById('rev-title').value.trim() || '未命名视频';
     const script = document.getElementById('rev-script').value.trim();
+    const shop = document.getElementById('rev-shop-select').value || '';
+    const productId = document.getElementById('rev-product-select').value || '';
+    const product = productId ? getProd(productId) : null;
+    const productName = product ? product.name : '';
+    const productBrand = product ? product.brand : '';
     const play = parseFloat(document.getElementById('rev-play').value) || 0;
     const like = parseFloat(document.getElementById('rev-like').value) || 0;
     const comment = parseFloat(document.getElementById('rev-comment').value) || 0;
@@ -1654,15 +1720,31 @@ function copyOriginal() {
       suggestions.push('小加预算测一波；顺手把脚本结构复制给同类选题接着用。');
     }
 
-    const report = {
-      title, script, play, like, comment, share, finish, s5, ctr, cvr, roi, cost,
+    const reportBase = {
+      title, script, shop, productId, productName, productBrand,
+      play, like, comment, share, finish, s5, ctr, cvr, roi, cost,
       pubDate, enterTime,
-      engagementRate, likeRate, score, diagnosis, suggestions,
-      aiAnalyzed: false,
-      date: new Date().toLocaleString('zh-CN')
+      engagementRate, likeRate, score, diagnosis, suggestions
     };
 
-    appData.reviews.unshift(report);
+    let report;
+    if (editingReviewIndex !== null && appData.reviews[editingReviewIndex]) {
+      report = appData.reviews[editingReviewIndex];
+      Object.assign(report, reportBase);
+      report.aiAnalyzed = false;
+      report.aiModel = '';
+      report.updatedAt = new Date().toLocaleString('zh-CN');
+      editingReviewIndex = null;
+      updateReviewFormMode(false);
+    } else {
+      report = {
+        ...reportBase,
+        aiAnalyzed: false,
+        aiModel: '',
+        date: new Date().toLocaleString('zh-CN')
+      };
+      appData.reviews.unshift(report);
+    }
     saveData(appData);
 
     renderReviewReport(report);
@@ -1710,8 +1792,19 @@ ${script || '未填写'}
   }
 
   function renderReviewReport(report) {
+    currentReviewReport = report;
     const resultBox = document.getElementById('review-result');
     const content = document.getElementById('review-content');
+    const editBtn = document.getElementById('review-edit-btn');
+    const idx = appData.reviews.indexOf(report);
+    if (editBtn) {
+      if (idx >= 0) {
+        editBtn.style.display = '';
+        editBtn.onclick = () => editReview(idx);
+      } else {
+        editBtn.style.display = 'none';
+      }
+    }
 
     let scoreColor = report.score >= 80 ? 'text-green-600' : report.score >= 60 ? 'text-yellow-600' : 'text-red-600';
     let scoreBg = report.score >= 80 ? 'bg-green-50' : report.score >= 60 ? 'bg-yellow-50' : 'bg-red-50';
@@ -1719,6 +1812,8 @@ ${script || '未填写'}
     content.innerHTML = `
       ${report.script ? `<div class="mb-3"><h4 class="font-semibold text-slate-800 mb-2 text-sm">📝 脚本内容</h4><div class="text-sm text-slate-700 bg-slate-50 p-3 rounded-lg max-h-[200px] overflow-y-auto whitespace-pre-wrap">${escapeHtml(report.script)}</div></div>` : ''}
       <div class="text-sm text-slate-500 flex flex-wrap gap-x-5 gap-y-1 mb-3">
+        ${report.shop ? `<span>🏪 店铺：${report.shop}</span>` : ''}
+        ${report.productName ? `<span>📦 商品：${report.productName}${report.productBrand ? '（' + report.productBrand + '）' : ''}</span>` : ''}
         ${report.pubDate ? `<span>📅 发布日期：${report.pubDate}</span>` : ''}
         ${report.enterTime ? `<span>🕒 录入时间：${report.enterTime.replace('T', ' ')}</span>` : ''}
       </div>
@@ -1758,6 +1853,12 @@ ${script || '未填写'}
           ${report.suggestions.map(s => `<li class="text-sm text-slate-700 bg-brand-50 p-3 rounded-lg"><i class="fa-solid fa-lightbulb text-brand-600 mr-2"></i>${s}</li>`).join('')}
         </ul>
       </div>
+      <div class="border-t border-slate-100 pt-4">
+        <h4 class="font-semibold text-slate-800 mb-2 text-sm">🚀 AI 脚本裂变</h4>
+        <p class="text-xs text-slate-500 mb-2">基于上方脚本和数据，让 AI 一次裂变出 3 条新脚本方向。</p>
+        <button onclick="fissionScriptsFromReport()" class="px-3 py-1.5 bg-brand-600 hover:bg-brand-700 text-white text-xs rounded-lg transition-colors"><i class="fa-solid fa-bolt mr-1"></i>AI 裂变脚本</button>
+        <div id="review-fission-result" class="mt-3 space-y-3"></div>
+      </div>
     `;
 
     resultBox.classList.remove('hidden');
@@ -1776,7 +1877,10 @@ ${script || '未填写'}
             <h4 class="font-medium text-slate-800 text-sm truncate max-w-[200px]">${r.title}</h4>
             <span class="text-xs text-brand-600 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">查看详情 →</span>
           </div>
-          <span class="text-xs text-slate-400">${r.enterTime ? '录入 ' + r.enterTime.replace('T', ' ') : (r.date.split(' ')[0])}${r.pubDate ? ' · 发布 ' + r.pubDate : ''}</span>
+          <div class="flex items-center gap-2">
+            <button onclick="event.stopPropagation(); editReview(${i})" class="text-xs text-slate-400 hover:text-brand-600 px-1.5 py-0.5 rounded hover:bg-slate-100 transition-colors" title="编辑"><i class="fa-solid fa-pen"></i></button>
+            <span class="text-xs text-slate-400">${r.enterTime ? '录入 ' + r.enterTime.replace('T', ' ') : (r.date.split(' ')[0])}${r.pubDate ? ' · 发布 ' + r.pubDate : ''}</span>
+          </div>
         </div>
         ${r.script ? `<p class="text-xs text-slate-500 truncate mb-1">${escapeHtml(r.script).slice(0, 45)}${r.script.length > 45 ? '...' : ''}</p>` : ''}
         <div class="flex items-center gap-3 text-xs text-slate-500">
@@ -1794,6 +1898,170 @@ ${script || '未填写'}
     if (box && !box.classList.contains('hidden')) {
       box.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
+  }
+
+  function updateReviewFormMode(isEditing) {
+    const submitText = document.getElementById('rev-submit-text');
+    const cancelBtn = document.getElementById('rev-cancel-edit-btn');
+    if (isEditing) {
+      submitText.textContent = '保存修改';
+      cancelBtn.classList.remove('hidden');
+    } else {
+      submitText.textContent = '生成复盘报告';
+      cancelBtn.classList.add('hidden');
+    }
+  }
+
+  function clearReviewForm() {
+    document.getElementById('rev-title').value = '';
+    document.getElementById('rev-script').value = '';
+    document.getElementById('rev-product-select').value = '';
+    document.getElementById('rev-product-meta').classList.add('hidden');
+    document.getElementById('rev-play').value = '';
+    document.getElementById('rev-like').value = '';
+    document.getElementById('rev-comment').value = '';
+    document.getElementById('rev-share').value = '';
+    document.getElementById('rev-finish').value = '';
+    document.getElementById('rev-5s').value = '';
+    document.getElementById('rev-ctr').value = '';
+    document.getElementById('rev-cvr').value = '';
+    document.getElementById('rev-roi').value = '';
+    document.getElementById('rev-cost').value = '';
+    fillReviewDefaults();
+  }
+
+  function editReview(index) {
+    event.stopPropagation();
+    const r = appData.reviews[index];
+    if (!r) return;
+    editingReviewIndex = index;
+    document.getElementById('rev-title').value = r.title || '';
+    document.getElementById('rev-script').value = r.script || '';
+    document.getElementById('rev-shop-select').value = r.shop || '洞庭山官方旗舰店';
+    populateReviewProductSelect(r.shop || '洞庭山官方旗舰店');
+    if (r.productId) {
+      document.getElementById('rev-product-select').value = r.productId;
+      onReviewProductChange();
+    } else {
+      document.getElementById('rev-product-select').value = '';
+      document.getElementById('rev-product-meta').classList.add('hidden');
+    }
+    document.getElementById('rev-pubdate').value = r.pubDate || '';
+    document.getElementById('rev-entertime').value = r.enterTime || '';
+    document.getElementById('rev-play').value = r.play || '';
+    document.getElementById('rev-like').value = r.like || '';
+    document.getElementById('rev-comment').value = r.comment || '';
+    document.getElementById('rev-share').value = r.share || '';
+    document.getElementById('rev-finish').value = r.finish || '';
+    document.getElementById('rev-5s').value = r.s5 || '';
+    document.getElementById('rev-ctr').value = r.ctr || '';
+    document.getElementById('rev-cvr').value = r.cvr || '';
+    document.getElementById('rev-roi').value = r.roi || '';
+    document.getElementById('rev-cost').value = r.cost || '';
+    updateReviewFormMode(true);
+    const form = document.querySelector('#tab-review .bg-white.rounded-2xl');
+    if (form) form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function cancelEditReview() {
+    editingReviewIndex = null;
+    updateReviewFormMode(false);
+    clearReviewForm();
+  }
+
+  // ================= AI 脚本裂变 =================
+  function fissionScriptsFromReport() {
+    if (!currentReviewReport) { showToast('请先查看一条复盘报告'); return; }
+    if (!aiReady()) { showToast('请先配置并启用 AI 设置'); return; }
+    const container = document.getElementById('review-fission-result');
+    container.innerHTML = '<div class="text-sm text-slate-500 bg-slate-50 p-3 rounded-lg"><i class="fa-solid fa-spinner fa-spin mr-2"></i>AI 正在裂变脚本，稍候…</div>';
+    const r = currentReviewReport;
+    const p = r.productId ? getProd(r.productId) : null;
+    const system = `你是抖音电商短视频脚本裂变专家。请根据用户提供的原脚本、数据表现和商品信息，裂变出 3 条不同角度但同样具备转化力的新口播脚本。
+要求：
+1. 保留原脚本核心卖点和商品利益点，但改变开头钩子、场景、叙事角度或情绪。
+2. 每条脚本都要口语化、可直接念，适合抖音信息流投放，时长控制在 20-40 秒。
+3. 每条包含：标题、口播稿、推荐标签（2-4 个）。
+4. 输出格式严格如下：
+### 1. {标题}
+{口播稿正文}
+
+#{标签1} #{标签2}
+---
+### 2. {标题}
+...`;
+    const userPrompt = `原视频标题：${r.title || '未命名'}
+店铺：${r.shop || '未填写'}
+挂车商品：${r.productName ? r.productName + '（' + r.productBrand + '）' : '未指定'}
+商品卖点：${p ? p.sp : '未填写'}
+原脚本：
+"""
+${r.script || '未填写'}
+"""
+数据表现：播放量 ${(r.play || 0).toLocaleString()}，完播率 ${r.finish || 0}%，5 秒完播率 ${r.s5 || 0}%，CTR ${r.ctr || 0}%，CVR ${r.cvr || 0}%，ROI ${r.roi || 0}。
+问题诊断：${(r.diagnosis || []).join('；')}
+优化建议：${(r.suggestions || []).join('；')}
+请直接输出 3 条裂变脚本。`;
+    callLLM(system, userPrompt).then(out => {
+      const list = parseFissionScripts(out);
+      if (!list.length) throw new Error('模型返回格式无法解析');
+      renderFissionResult(list);
+    }).catch(e => {
+      container.innerHTML = '<div class="text-sm text-red-600 bg-red-50 p-3 rounded-lg"><i class="fa-solid fa-circle-exclamation mr-2"></i>裂变失败：' + escapeHtml(e.message) + '</div>';
+      showToast('AI 裂变失败：' + e.message);
+    });
+  }
+
+  function parseFissionScripts(text) {
+    const blocks = (text || '').split(/###\s*\d+\.\s*/).map(b => b.trim()).filter(b => b);
+    return blocks.map(block => {
+      let lines = block.split(/\n/).map(l => l.trim()).filter(l => l);
+      if (!lines.length) return null;
+      const title = lines[0].replace(/^#+\s*/, '').trim();
+      const lastLine = lines[lines.length - 1];
+      const tags = [];
+      if (lastLine && lastLine.includes('#')) {
+        const tagMatches = lastLine.match(/#[^\s#]+/g);
+        if (tagMatches) tags.push(...tagMatches);
+        if (lastLine.startsWith('#')) lines.pop();
+      }
+      const body = lines.slice(1).join('\n').trim();
+      if (!body) return null;
+      return { title, body, tags };
+    }).filter(Boolean);
+  }
+
+  function renderFissionResult(list) {
+    const container = document.getElementById('review-fission-result');
+    container.innerHTML = list.map((item, i) => `
+      <div class="bg-slate-50 rounded-xl p-4">
+        <div class="flex items-center justify-between mb-2">
+          <h5 class="font-medium text-slate-800 text-sm">${i + 1}. ${escapeHtml(item.title)}</h5>
+          <div class="flex gap-2">
+            <button onclick="copyFissionScript(${i})" class="text-xs px-2 py-1 bg-white border border-slate-200 rounded-md text-slate-600 hover:text-brand-600 transition-colors">复制</button>
+            <button onclick="useFissionToMemo(${i})" class="text-xs px-2 py-1 bg-brand-50 border border-brand-200 rounded-md text-brand-700 hover:bg-brand-100 transition-colors">加入备忘录</button>
+          </div>
+        </div>
+        <div class="text-sm text-slate-700 whitespace-pre-wrap mb-2">${escapeHtml(item.body)}</div>
+        ${item.tags.length ? `<div class="text-xs text-slate-500">${item.tags.map(t => `<span class="inline-block bg-slate-100 px-1.5 py-0.5 rounded mr-1">${escapeHtml(t)}</span>`).join('')}</div>` : ''}
+      </div>
+    `).join('');
+    window._lastFissionScripts = list;
+  }
+
+  function copyFissionScript(i) {
+    const item = (window._lastFissionScripts || [])[i];
+    if (!item) return;
+    const text = item.title + '\n\n' + item.body + (item.tags.length ? '\n\n' + item.tags.join(' ') : '');
+    navigator.clipboard.writeText(text).then(() => showToast('已复制脚本'));
+  }
+
+  function useFissionToMemo(i) {
+    const item = (window._lastFissionScripts || [])[i];
+    if (!item) return;
+    const text = '【' + item.title + '】\n' + item.body + (item.tags.length ? '\n' + item.tags.join(' ') : '');
+    addMemoItem(text, false);
+    showToast('已加入今天备忘录');
   }
 
   // ================= 备忘录 =================
@@ -1915,17 +2183,19 @@ ${script || '未填写'}
     }).join('');
   }
 
-  function addMemoItem() {
+  function addMemoItem(text, persistent) {
     if (!appData.memoItems) appData.memoItems = [];
-    const item = { id: genId(), text: '', done: false, persistent: false, date: memoSelectedDate, created: memoSelectedDate };
+    const item = { id: genId(), text: text || '', done: false, persistent: !!persistent, date: memoSelectedDate, created: memoSelectedDate };
     appData.memoItems.push(item);
     saveData(appData);
     renderMemoList();
     renderMemoCalendar();
-    // 聚焦刚新增的输入框
-    const box = document.getElementById('memo-list');
-    const row = box && box.querySelector(`[data-id="${item.id}"] input[type="text"]`);
-    if (row) { row.focus(); }
+    // 只有空文本时才聚焦刚新增的输入框
+    if (!text) {
+      const box = document.getElementById('memo-list');
+      const row = box && box.querySelector(`[data-id="${item.id}"] input[type="text"]`);
+      if (row) { row.focus(); }
+    }
   }
 
   function toggleMemoDone(id) {
