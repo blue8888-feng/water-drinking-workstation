@@ -48,6 +48,7 @@
     .tag { transition: all 0.2s; }
     .tag:hover { transform: scale(1.05); }
     textarea, input { outline: none; }
+    textarea.auto-resize { min-height: 38px; height: auto; overflow: hidden; resize: none; line-height: 1.5; }
     .script-box { background: #f8fafc; border-left: 4px solid #16a34a; }
     .hot-item { transition: all 0.2s; }
     .hot-item:hover { background-color: #f0fdf4; }
@@ -1108,14 +1109,19 @@
         <td class="px-4 py-3 text-xs text-slate-600 leading-relaxed max-w-[180px]">${shops.length ? shops.map(s => s.replace('官方旗舰店', '官旗').replace('旗舰店', '')).join('<br>') : '<span class="text-slate-300">—</span>'}</td>
         <td class="px-4 py-3"><input value="${escapeAttr(p.price)}" placeholder="¥ —" onchange="saveProdField('${p.id}','price',this.value)" class="w-24 px-2 py-1.5 text-sm bg-slate-50 border border-transparent hover:border-slate-200 focus:border-brand-500 focus:bg-white rounded-lg transition-colors"></td>
         <td class="px-4 py-3"><input value="${escapeAttr(p.activity)}" placeholder="点击填写" onchange="saveProdField('${p.id}','activity',this.value)" class="w-32 px-2 py-1.5 text-sm bg-slate-50 border border-transparent hover:border-slate-200 focus:border-brand-500 focus:bg-white rounded-lg transition-colors"></td>
-        <td class="px-4 py-3"><input value="${escapeAttr(p.sp)}" onchange="saveProdField('${p.id}','sp',this.value)" class="w-full min-w-[220px] px-2 py-1.5 text-sm bg-slate-50 border border-transparent hover:border-slate-200 focus:border-brand-500 focus:bg-white rounded-lg transition-colors"></td>
+        <td class="px-4 py-3"><textarea rows="1" oninput="autoResize(this)" onchange="saveProdField('${p.id}','sp',this.value)" class="auto-resize w-full min-w-[280px] px-2 py-1.5 text-sm bg-slate-50 border border-transparent hover:border-slate-200 focus:border-brand-500 focus:bg-white rounded-lg transition-colors">${escapeHtml(p.sp)}</textarea></td>
         <td class="px-4 py-3"><button onclick="goRewrite('${p.id}')" class="text-xs px-3 py-1.5 bg-brand-50 hover:bg-brand-100 text-brand-700 rounded-lg whitespace-nowrap transition-colors"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i>去二创</button></td>
       </tr>`;
     }).join('');
+    requestAnimationFrame(() => body.querySelectorAll('textarea.auto-resize').forEach(autoResize));
   }
 
   function escapeAttr(text) {
     return String(text || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+  }
+  function autoResize(el) {
+    el.style.height = 'auto';
+    el.style.height = el.scrollHeight + 'px';
   }
 
   // 从商品表跳转到二创
