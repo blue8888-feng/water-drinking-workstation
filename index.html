@@ -460,14 +460,22 @@
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[calc(100vh-180px)]">
           <!-- 左侧：备忘录编辑 -->
           <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
-            <div class="p-5 border-b border-slate-100 flex items-center justify-between">
-              <div>
-                <h3 class="font-semibold text-slate-800"><i class="fa-solid fa-note-sticky text-brand-600 mr-2"></i>运营备忘录</h3>
-                <p id="memo-date-label" class="text-xs text-slate-500 mt-1">加载中...</p>
+            <div class="p-5 border-b border-slate-100">
+              <div class="flex items-center justify-between">
+                <div>
+                  <h3 class="font-semibold text-slate-800"><i class="fa-solid fa-note-sticky text-brand-600 mr-2"></i>运营备忘录</h3>
+                  <p id="memo-date-label" class="text-xs text-slate-500 mt-1">加载中...</p>
+                </div>
+                <span id="memo-status" class="text-xs text-slate-400">自动保存中...</span>
               </div>
-              <span id="memo-status" class="text-xs text-slate-400">自动保存中...</span>
+              <div class="mt-3 flex items-center justify-between">
+                <label class="flex items-center gap-1.5 text-xs text-slate-500 cursor-pointer select-none">
+                  <input type="checkbox" id="memo-hide-done" onchange="renderMemoList()" class="w-3.5 h-3.5 rounded border-slate-300 text-brand-600 focus:ring-brand-500"> 隐藏已完成
+                </label>
+                <button onclick="addMemoItem()" class="text-xs px-3 py-1.5 bg-brand-600 hover:bg-brand-700 text-white rounded-lg transition-colors"><i class="fa-solid fa-plus mr-1"></i>添加待办</button>
+              </div>
             </div>
-            <textarea id="memo-text" class="flex-1 w-full p-6 resize-none border-0 text-sm leading-relaxed text-slate-700 bg-slate-50 focus:bg-white transition-colors" placeholder="记录临时想法、达人对接信息、上级要求、活动节点..." oninput="saveMemo()"></textarea>
+            <div id="memo-list" class="flex-1 overflow-auto p-4 space-y-2"></div>
           </div>
           <!-- 右侧：全月日历 -->
           <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
@@ -566,6 +574,7 @@
       reviews: [],
       memo: '',
       memoByDate: {},
+      memoItems: [],
       lastDate: new Date().toDateString(),
       ai: { enabled: false, provider: 'deepseek', apiKey: '', baseUrl: 'https://api.deepseek.com/v1', model: 'deepseek-chat', temperature: 0.8 }
     };
@@ -1078,11 +1087,11 @@ function copyRewrite() {
   function saveRewriteToMemo() {
     const text = document.getElementById('rewrite-content').innerText;
     const dateStr = memoSelectedDate || formatDateLocal(new Date());
-    if (!appData.memoByDate) appData.memoByDate = {};
-    appData.memoByDate[dateStr] = (appData.memoByDate[dateStr] || '') + '\n\n--- 二创脚本 ' + new Date().toLocaleString('zh-CN') + ' ---\n' + text;
+    if (!appData.memoItems) appData.memoItems = [];
+    appData.memoItems.push({ id: genId(), text: '--- 二创脚本 ' + new Date().toLocaleString('zh-CN') + ' ---\n' + text, done: false, persistent: false, date: dateStr, created: dateStr });
     saveData(appData);
     if (memoSelectedDate === dateStr) {
-      document.getElementById('memo-text').value = appData.memoByDate[dateStr];
+      renderMemoList();
       renderMemoCalendar();
     }
     alert('已加入 ' + dateStr + ' 的备忘录');
@@ -1209,11 +1218,11 @@ function copyOriginal() {
   function saveOriginalToMemo() {
     const text = document.getElementById('original-content').innerText;
     const dateStr = memoSelectedDate || formatDateLocal(new Date());
-    if (!appData.memoByDate) appData.memoByDate = {};
-    appData.memoByDate[dateStr] = (appData.memoByDate[dateStr] || '') + '\n\n--- 原创脚本 ' + new Date().toLocaleString('zh-CN') + ' ---\n' + text;
+    if (!appData.memoItems) appData.memoItems = [];
+    appData.memoItems.push({ id: genId(), text: '--- 原创脚本 ' + new Date().toLocaleString('zh-CN') + ' ---\n' + text, done: false, persistent: false, date: dateStr, created: dateStr });
     saveData(appData);
     if (memoSelectedDate === dateStr) {
-      document.getElementById('memo-text').value = appData.memoByDate[dateStr];
+      renderMemoList();
       renderMemoCalendar();
     }
     alert('已加入 ' + dateStr + ' 的备忘录');
@@ -1735,14 +1744,20 @@ function copyOriginal() {
     memoCalendarYear = today.getFullYear();
     memoCalendarMonth = today.getMonth();
     memoSelectedDate = formatDateLocal(today);
-    if (!appData.memoByDate) appData.memoByDate = {};
-    // 兼容旧版单条 memo：首次进入时迁到今天
-    if (appData.memo && !appData.memoByDate[memoSelectedDate]) {
-      appData.memoByDate[memoSelectedDate] = appData.memo;
+    if (!appData.memoItems) appData.memoItems = [];
+    // 兼容旧版 memoByDate 文本：首次进入时按行拆成清单项
+    if (!appData._memoMigrated && appData.memoByDate) {
+      for (const [date, txt] of Object.entries(appData.memoByDate)) {
+        String(txt).split('\n').map(s => s.trim()).filter(Boolean).forEach(line => {
+          appData.memoItems.push({ id: genId(), text: line, done: false, persistent: false, date, created: date });
+        });
+      }
+      appData._memoMigrated = true;
+      delete appData.memoByDate;
       saveData(appData);
     }
     renderMemoCalendar();
-    loadMemoForDate(memoSelectedDate);
+    renderMemoList();
   }
 
   function renderMemoCalendar() {
@@ -1755,13 +1770,14 @@ function copyOriginal() {
     const firstDay = new Date(year, month, 1).getDay();
     const lastDate = new Date(year, month + 1, 0).getDate();
     const today = formatDateLocal(new Date());
+    const items = appData.memoItems || [];
     let html = '';
     for (let i = 0; i < firstDay; i++) html += '<div></div>';
     for (let d = 1; d <= lastDate; d++) {
       const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
       const isSelected = dateStr === memoSelectedDate;
       const isToday = dateStr === today;
-      const hasMemo = !!(appData.memoByDate && appData.memoByDate[dateStr] && appData.memoByDate[dateStr].trim());
+      const hasMemo = items.some(it => it.date === dateStr || (it.persistent && !it.done));
       let classes = 'relative h-10 w-10 mx-auto flex items-center justify-center rounded-lg text-sm transition-colors ';
       if (isSelected) classes += 'bg-brand-600 text-white font-medium ';
       else if (isToday) classes += 'bg-brand-50 text-brand-700 border border-brand-200 font-medium ';
@@ -1772,21 +1788,101 @@ function copyOriginal() {
     grid.innerHTML = html;
   }
 
-  function selectMemoDate(dateStr) {
-    // 切日期前自动保存当前日期内容
-    const raw = document.getElementById('memo-text').value;
-    if (raw.trim()) appData.memoByDate[memoSelectedDate] = raw;
-    else delete appData.memoByDate[memoSelectedDate];
-    saveData(appData);
+  function escapeAttr(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
 
-    memoSelectedDate = dateStr;
-    loadMemoForDate(dateStr);
+  function genId() {
+    return 'm' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  }
+
+  function renderMemoList() {
+    const box = document.getElementById('memo-list');
+    if (!box) return;
+    const items = appData.memoItems || [];
+    const hideDone = document.getElementById('memo-hide-done') && document.getElementById('memo-hide-done').checked;
+    const persistent = items.filter(it => it.persistent && !it.done);
+    const dated = items.filter(it => it.date === memoSelectedDate && !(it.persistent && !it.done));
+    const view = persistent.concat(dated);
+    if (hideDone) {
+      // 仅隐藏「当天已完成」项；进行中(未完成)始终保留
+      const filtered = view.filter(it => !(it.date === memoSelectedDate && it.done && !it.persistent));
+      renderMemoRows(box, filtered);
+      return;
+    }
+    renderMemoRows(box, view);
+  }
+
+  function renderMemoRows(box, list) {
+    if (!list.length) {
+      box.innerHTML = '<div class="text-sm text-slate-400 text-center py-10">这一天还没有备忘，点右上角「添加待办」记一条吧</div>';
+      return;
+    }
+    box.innerHTML = list.map(it => {
+      const cls = 'flex items-start gap-2 group';
+      const inputCls = 'flex-1 min-w-0 bg-transparent border-0 text-sm focus:outline-none focus:bg-slate-50 rounded px-1 py-1 ' + (it.done ? 'line-through text-slate-400' : 'text-slate-700');
+      const pinCls = it.persistent ? 'text-brand-600' : 'text-slate-300 hover:text-brand-400';
+      const tag = it.persistent && !it.done ? '<span class="text-[10px] leading-none px-1.5 py-0.5 rounded bg-brand-50 text-brand-600 shrink-0 mt-1">进行中</span>' : '';
+      return `<div class="${cls}" data-id="${it.id}">
+        <input type="checkbox" ${it.done ? 'checked' : ''} onchange="toggleMemoDone('${it.id}')" class="mt-1.5 w-4 h-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500 cursor-pointer">
+        <input type="text" value="${escapeAttr(it.text)}" oninput="updateMemoText('${it.id}', this.value)" class="${inputCls}" placeholder="待办内容...">
+        ${tag}
+        <button onclick="toggleMemoPersistent('${it.id}')" title="标记为进行中（跨天显示，直到完成）" class="mt-1 w-6 h-6 flex items-center justify-center rounded hover:bg-slate-100 transition-colors"><i class="fa-solid fa-thumbtack ${pinCls}"></i></button>
+        <button onclick="deleteMemoItem('${it.id}')" title="删除" class="mt-1 w-6 h-6 flex items-center justify-center rounded hover:bg-red-50 transition-colors"><i class="fa-solid fa-xmark text-slate-300 hover:text-red-500"></i></button>
+      </div>`;
+    }).join('');
+  }
+
+  function addMemoItem() {
+    if (!appData.memoItems) appData.memoItems = [];
+    const item = { id: genId(), text: '', done: false, persistent: false, date: memoSelectedDate, created: memoSelectedDate };
+    appData.memoItems.push(item);
+    saveData(appData);
+    renderMemoList();
+    renderMemoCalendar();
+    // 聚焦刚新增的输入框
+    const box = document.getElementById('memo-list');
+    const row = box && box.querySelector(`[data-id="${item.id}"] input[type="text"]`);
+    if (row) { row.focus(); }
+  }
+
+  function toggleMemoDone(id) {
+    const it = (appData.memoItems || []).find(x => x.id === id);
+    if (!it) return;
+    it.done = !it.done;
+    saveData(appData);
+    renderMemoList();
     renderMemoCalendar();
   }
 
-  function loadMemoForDate(dateStr) {
-    const text = (appData.memoByDate && appData.memoByDate[dateStr]) || '';
-    document.getElementById('memo-text').value = text;
+  function updateMemoText(id, val) {
+    const it = (appData.memoItems || []).find(x => x.id === id);
+    if (!it) return;
+    it.text = val;
+    saveData(appData);
+    renderMemoCalendar();
+  }
+
+  function deleteMemoItem(id) {
+    appData.memoItems = (appData.memoItems || []).filter(x => x.id !== id);
+    saveData(appData);
+    renderMemoList();
+    renderMemoCalendar();
+  }
+
+  function toggleMemoPersistent(id) {
+    const it = (appData.memoItems || []).find(x => x.id === id);
+    if (!it) return;
+    it.persistent = !it.persistent;
+    saveData(appData);
+    renderMemoList();
+    renderMemoCalendar();
+  }
+
+  function selectMemoDate(dateStr) {
+    memoSelectedDate = dateStr;
+    renderMemoList();
+    renderMemoCalendar();
     updateMemoDateLabel();
   }
 
@@ -1802,24 +1898,6 @@ function copyOriginal() {
     memoCalendarYear = today.getFullYear();
     memoCalendarMonth = today.getMonth();
     selectMemoDate(formatDateLocal(today));
-  }
-
-  function saveMemo() {
-    clearTimeout(memoTimer);
-    const status = document.getElementById('memo-status');
-    status.textContent = '保存中...';
-    status.classList.add('text-brand-600');
-
-    memoTimer = setTimeout(() => {
-      if (!appData.memoByDate) appData.memoByDate = {};
-      const raw = document.getElementById('memo-text').value;
-      if (raw.trim()) appData.memoByDate[memoSelectedDate] = raw;
-      else delete appData.memoByDate[memoSelectedDate];
-      saveData(appData);
-      status.textContent = '已自动保存';
-      status.classList.remove('text-brand-600');
-      renderMemoCalendar();
-    }, 500);
   }
 
   // ================= 工具函数 =================
@@ -1856,11 +1934,12 @@ function copyOriginal() {
           renderTasks();
           renderIdeas();
           renderReviewHistory();
-          if (!appData.memoByDate) appData.memoByDate = {};
+          if (!appData.memoItems) appData.memoItems = [];
           if (document.getElementById('tab-memo') && !document.getElementById('tab-memo').classList.contains('hidden')) {
             initMemoSection();
           } else {
-            document.getElementById('memo-text').value = appData.memo || '';
+            const listEl = document.getElementById('memo-list');
+            if (listEl) listEl.innerHTML = '';
           }
           saveData(appData);
           alert('数据导入成功！');
@@ -2033,12 +2112,12 @@ function copyOriginal() {
         renderTasks();
         renderIdeas();
         renderReviewHistory();
-        if (!appData.memoByDate) appData.memoByDate = {};
+        if (!appData.memoItems) appData.memoItems = [];
         if (document.getElementById('tab-memo') && !document.getElementById('tab-memo').classList.contains('hidden')) {
           initMemoSection();
         } else {
-          const memoEl = document.getElementById('memo-text');
-          if (memoEl) memoEl.value = appData.memo || '';
+          const listEl = document.getElementById('memo-list');
+          if (listEl) listEl.innerHTML = '';
         }
         saveData(appData);
         alert('已从同步链接载入最新数据。');
@@ -2053,14 +2132,15 @@ function copyOriginal() {
   function clearAllData() {
     if (confirm('确定要清空所有数据吗？此操作不可恢复。')) {
       localStorage.removeItem(STORAGE_KEY);
-      appData = { tasks: [], ideas: [], customIdeas: [], reviews: [], memo: '', memoByDate: {}, lastDate: new Date().toDateString() };
+      appData = { tasks: [], ideas: [], customIdeas: [], reviews: [], memo: '', memoByDate: {}, memoItems: [], lastDate: new Date().toDateString() };
       renderTasks();
       renderIdeas();
       renderReviewHistory();
       if (document.getElementById('tab-memo') && !document.getElementById('tab-memo').classList.contains('hidden')) {
         initMemoSection();
       } else {
-        document.getElementById('memo-text').value = '';
+        const listEl = document.getElementById('memo-list');
+        if (listEl) listEl.innerHTML = '';
       }
       document.getElementById('review-result').classList.add('hidden');
       document.getElementById('rewrite-result').classList.add('hidden');
