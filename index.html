@@ -152,6 +152,11 @@
           <i class="fa-solid fa-arrow-right-arrow-left mr-1"></i> 生成同步链接
           <span class="info-tip tip-left ml-1.5" data-tip="把当前数据压缩编码进一条短链接并生成二维码，转发到手机或另一台电脑打开即可自动同步，无需注册账号。" onclick="event.stopPropagation()"><i class="fa-solid fa-circle-exclamation"></i></span>
         </button>
+        <button onclick="openAiSettings()" class="relative text-sm px-4 py-2 text-slate-600 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-colors flex items-center">
+          <i class="fa-solid fa-robot mr-1"></i> AI 设置
+          <span id="ai-status-dot" class="ml-2 w-2 h-2 rounded-full bg-slate-300"></span>
+          <span class="info-tip tip-left ml-1.5" data-tip="填自己的大模型 Key（DeepSeek / 豆包火山方舟 / 自定义 OpenAI 兼容），脚本生成会自动调用模型，质量更高。Key 只存在你浏览器本地，不会上传到任何服务器。" onclick="event.stopPropagation()"><i class="fa-solid fa-circle-exclamation"></i></span>
+        </button>
         <input type="file" id="import-file" accept="application/json,.json" style="display:none" onchange="handleImport(this.files[0])">
         <button onclick="clearAllData()" class="text-sm px-4 py-2 text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
           <i class="fa-solid fa-trash-can mr-1"></i> 清空
@@ -521,7 +526,8 @@
       customIdeas: [],
       reviews: [],
       memo: '',
-      lastDate: new Date().toDateString()
+      lastDate: new Date().toDateString(),
+      ai: { enabled: false, provider: 'deepseek', apiKey: '', baseUrl: 'https://api.deepseek.com/v1', model: 'deepseek-chat', temperature: 0.8 }
     };
   }
 
@@ -530,6 +536,13 @@
   }
 
   let appData = loadData();
+
+  // AI 模型配置是否可用（已开启且填了 Key）
+  function aiReady() {
+    const ai = appData.ai || {};
+    return !!(ai.enabled && ai.apiKey && ai.baseUrl && ai.model);
+  }
+
 
   // 日期显示
   function updateDate() {
@@ -776,54 +789,60 @@
     document.getElementById('selected-hot').scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
-  function generateRewrite() {
-    const hotIndex = document.getElementById('selected-hot').value;
-    const shop = document.getElementById('shop-select').value;
-    const point = document.getElementById('selling-point').value.trim();
+  
+  // ================= AI 脚本生成（调用大模型） =================
+  function escapeHtml(text) {
+    return String(text || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
 
-    if (hotIndex === '') {
-      alert('请先选择一个热点');
-      return;
+  // 调用 OpenAI 兼容接口（DeepSeek / 豆包火山方舟 / 自定义通用）
+  async function callLLM(system, user) {
+    const ai = appData.ai || {};
+    if (!ai.apiKey || !ai.baseUrl || !ai.model) throw new Error('AI 未配置');
+    const base = ai.baseUrl.replace(/\/+$/, '');
+    const url = base + '/chat/completions';
+    let resp;
+    try {
+      resp = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + ai.apiKey },
+        body: JSON.stringify({
+          model: ai.model,
+          messages: [
+            { role: 'system', content: system },
+            { role: 'user', content: user }
+          ],
+          temperature: ai.temperature != null ? ai.temperature : 0.8,
+          stream: false
+        })
+      });
+    } catch (e) {
+      throw new Error('网络/CORS 失败（' + e.message + '），请检查 Key 与网络，或关闭 AI 用本地模板');
     }
+    if (!resp.ok) {
+      let msg = resp.status + ' ' + resp.statusText;
+      try { const j = await resp.json(); if (j.error && j.error.message) msg = j.error.message; } catch (e2) {}
+      throw new Error(msg);
+    }
+    const data = await resp.json();
+    const out = (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) || '';
+    if (!out.trim()) throw new Error('模型返回为空');
+    return out;
+  }
 
-    const hot = hotExamples[hotIndex];
-    const prodId = document.getElementById('product-select').value;
-    const prod = prodId ? getProd(prodId) : null;
-    const resultBox = document.getElementById('rewrite-result');
-    const content = document.getElementById('rewrite-content');
-
-    const hotClean = hot.title.replace(/全网都在挑战的\s*,?/, '').replace(/[“”"'']/g, '').trim();
-    const prodName = prod ? prod.name.replace(/（.*?）|\(.*?\)/g, '') : '';
-    const pointText = point || (prod ? prod.sp : '水源地就在苏州边上，喝着放心');
-
-    const hooks = [
-      `(对着镜头晃晃手里的瓶子)你刷到「${hotClean}」那个梗没？我昨天真试了一把，发现自己好些年水都白喝了。`,
-      `(压低声音，像说悄悄话)最近「${hotClean}」这么火不是没道理的。但我跟你讲句大实话——喝水这事儿，门道比你想得多。`,
-      `(苦笑)我妈又念叨我喝水不讲究。行，今天我就用${shop}这款，让她看看啥叫"会过日子的人"。`
-    ];
-    const hook = hooks[Math.floor(Math.random() * hooks.length)];
-
-    const scenes = [
-      `你想啊，半夜起来渴得不行，摸黑接自来水灌一口，第二天嗓子发干。我现在床头常备${prodName || shop+'这款'}，渴了拧开就喝，省事还放心。`,
-      `带娃的应该懂我意思——半夜冲奶最怕水质不干净。${prodName || shop+'这款'}我专门用来冲奶，宝宝肯喝，我也安心。`,
-      `办公室下午三四点最困，奶茶喝多了腻还长肉。我工位底下囤一箱${prodName || shop+'这款'}，困了来一瓶，比咖啡舒服。`,
-      `健身完那一身汗，最想来口凉的。我现在不直接灌冰自来水了，先整瓶${prodName || shop+'这款'}缓一缓，胃里舒服多了。`,
-      `夏天水放两天就有味儿，你肯定也烦。换了${prodName || shop+'这款'}之后，放多久都清清爽爽，烧饭煮茶都敢用。`
-    ];
-    const scene = scenes[Math.floor(Math.random() * scenes.length)];
-
-    const cta = prod
-      ? `${prodName}就挂左下角小黄车了，我自个儿家就在喝。${prod.activity ? prod.activity + '，' : ''}想要的自己去拍，好水自己会说话。`
-      : `${shop}这款就挂左下角了，苏州本地发的，隔天就到。懒得挑的直接拍链接里的组合，划算。`;
-
-    content.innerHTML = `
+  function renderRewriteHead(shop, hot, prod, pointText, prodName) {
+    return `
       <div class="script-box p-4 rounded-xl">
         <h4 class="font-semibold text-brand-800 mb-2 text-sm">🎯 改编方向</h4>
         <p class="text-sm text-slate-700">原热点：<span class="font-medium">${hot.title}</span>（${hot.tag}）</p>
         <p class="text-sm text-slate-700 mt-1">适配店铺：<span class="font-medium">${shop}</span></p>
         ${prod ? `<p class="text-sm text-slate-700 mt-1">挂车商品：<span class="font-medium">${prod.name}（${prod.brand}）</span>${prod.price ? ' · 管控价 ' + prod.price : ''}${prod.activity ? ' · ' + prod.activity : ''}</p>` : ''}
         <p class="text-sm text-slate-700 mt-1">核心卖点：<span class="font-medium">${pointText}</span></p>
-      </div>
+      </div>`;
+  }
+
+  function renderRewriteBodyLocal(hook, scene, cta, pointText, prod, shop, hot) {
+    return `
       <div>
         <h4 class="font-semibold text-slate-800 mb-2 text-sm">⏱ 0-3 秒 钩子（对着镜头自然说，别念稿）</h4>
         <p class="text-sm text-slate-700 bg-slate-50 p-3 rounded-lg">${hook}</p>
@@ -849,13 +868,154 @@
           <span class="tag text-xs px-3 py-1 bg-slate-100 text-slate-600 rounded-full">#囤货</span>
           <span class="tag text-xs px-3 py-1 bg-slate-100 text-slate-600 rounded-full">#${hot.tag}</span>
         </div>
-      </div>
-    `;
-
-    resultBox.classList.remove('hidden');
+      </div>`;
   }
 
-  function copyRewrite() {
+  function renderOriginalHead(ideaTitle, idea, shop, prod, pointText, prodName) {
+    return `
+      <div class="script-box p-4 rounded-xl">
+        <h4 class="font-semibold text-brand-800 mb-2 text-sm">🎯 创作主题</h4>
+        <p class="text-sm text-slate-700">灵感：${ideaTitle}（${idea.direction || '通用'}）</p>
+        <p class="text-sm text-slate-700 mt-1">适配店铺：<span class="font-medium">${shop}</span></p>
+        ${prod ? `<p class="text-sm text-slate-700 mt-1">挂车商品：<span class="font-medium">${prod.name}（${prod.brand}）</span>${prod.price ? ' · 管控价 ' + prod.price : ''}${prod.activity ? ' · ' + prod.activity : ''}</p>` : ''}
+        <p class="text-sm text-slate-700 mt-1">核心卖点：<span class="font-medium">${pointText}</span></p>
+      </div>`;
+  }
+
+  function renderOriginalBodyLocal(hook, scene, cta, pointText, prod, shop, idea) {
+    return `
+      <div>
+        <h4 class="font-semibold text-slate-800 mb-2 text-sm">⏱ 0-3 秒 钩子（像跟朋友唠嗑，别端着）</h4>
+        <p class="text-sm text-slate-700 bg-slate-50 p-3 rounded-lg">${hook}</p>
+      </div>
+      <div>
+        <h4 class="font-semibold text-slate-800 mb-2 text-sm">⏱ 3-20 秒 讲个真事儿</h4>
+        <p class="text-sm text-slate-700 bg-slate-50 p-3 rounded-lg">${scene}<br>顺嘴带卖点：${pointText}</p>
+      </div>
+      <div>
+        <h4 class="font-semibold text-slate-800 mb-2 text-sm">⏱ 20-35 秒 给画面</h4>
+        <p class="text-sm text-slate-700 bg-slate-50 p-3 rounded-lg">切真实镜头：倒水 / 泡茶 / 野餐摆拍 / 一家人喝。别说教，让画面替你说话。</p>
+      </div>
+      <div>
+        <h4 class="font-semibold text-slate-800 mb-2 text-sm">⏱ 35-45 秒 收尾</h4>
+        <p class="text-sm text-slate-700 bg-slate-50 p-3 rounded-lg">${cta}${prod && prod.price ? '<br>字幕打：到手 ' + prod.price : ''}</p>
+      </div>
+      <div>
+        <h4 class="font-semibold text-slate-800 mb-2 text-sm">🏷 建议标签</h4>
+        <div class="flex flex-wrap gap-2">
+          <span class="tag text-xs px-3 py-1 bg-slate-100 text-slate-600 rounded-full">#${shop.replace('官方旗舰店', '').replace('旗舰店', '')}</span>
+          <span class="tag text-xs px-3 py-1 bg-slate-100 text-slate-600 rounded-full">#${idea.direction || '好水'}</span>
+          <span class="tag text-xs px-3 py-1 bg-slate-100 text-slate-600 rounded-full">#矿泉水</span>
+          <span class="tag text-xs px-3 py-1 bg-slate-100 text-slate-600 rounded-full">#喝水日常</span>
+          <span class="tag text-xs px-3 py-1 bg-slate-100 text-slate-600 rounded-full">#囤货</span>
+        </div>
+      </div>`;
+  }
+
+  function renderAiBody(out, fallbackTags) {
+    let scriptText = out.trim();
+    let tags = fallbackTags || [];
+    const lines = scriptText.split(/\n+/);
+    const last = lines[lines.length - 1] || '';
+    const lastTags = last.match(/#[\w一-龥]+/g);
+    if (lastTags && lastTags.length) {
+      tags = lastTags;
+      lines.pop();
+      scriptText = lines.join('\n').trim();
+    } else {
+      const all = scriptText.match(/#[\w一-龥]+/g);
+      if (all && all.length) tags = all;
+    }
+    const tagHtml = (tags.length ? tags : (fallbackTags || [])).map(t => `<span class="tag text-xs px-3 py-1 bg-slate-100 text-slate-600 rounded-full">${t}</span>`).join('');
+    return `
+      <div>
+        <h4 class="font-semibold text-slate-800 mb-2 text-sm">🤖 AI 口播脚本（已按你的卖点生成）</h4>
+        <pre class="text-sm text-slate-700 bg-slate-50 p-3 rounded-lg whitespace-pre-wrap font-sans leading-relaxed">${escapeHtml(scriptText)}</pre>
+      </div>
+      <div>
+        <h4 class="font-semibold text-slate-800 mb-2 text-sm">🏷 建议标签</h4>
+        <div class="flex flex-wrap gap-2">${tagHtml}</div>
+      </div>`;
+  }
+
+
+  async function generateRewrite() {
+    const hotIndex = document.getElementById('selected-hot').value;
+    const shop = document.getElementById('shop-select').value;
+    const point = document.getElementById('selling-point').value.trim();
+
+    if (hotIndex === '') {
+      alert('请先选择一个热点');
+      return;
+    }
+
+    const hot = hotExamples[hotIndex];
+    const prodId = document.getElementById('product-select').value;
+    const prod = prodId ? getProd(prodId) : null;
+    const resultBox = document.getElementById('rewrite-result');
+    const content = document.getElementById('rewrite-content');
+
+    const hotClean = hot.title.replace(/全网都在挑战的\s*,?/, '').replace(/[“”"'']/g, '').trim();
+    const prodName = prod ? prod.name.replace(/（.*?）|\(.*?\)/g, '') : '';
+    const pointText = point || (prod ? prod.sp : '水源地就在苏州边上，喝着放心');
+
+    const headHtml = renderRewriteHead(shop, hot, prod, pointText, prodName);
+    const fallbackTags = ['#' + shop.replace('官方旗舰店', '').replace('旗舰店', ''), '#矿泉水', '#夏天喝水', '#囤货', '#' + hot.tag];
+
+    if (!aiReady()) {
+      const hooks = [
+        `(对着镜头晃晃手里的瓶子)你刷到「${hotClean}」那个梗没？我昨天真试了一把，发现自己好些年水都白喝了。`,
+        `(压低声音，像说悄悄话)最近「${hotClean}」这么火不是没道理的。但我跟你讲句大实话——喝水这事儿，门道比你想得多。`,
+        `(苦笑)我妈又念叨我喝水不讲究。行，今天我就用${shop}这款，让她看看啥叫"会过日子的人"。`
+      ];
+      const hook = hooks[Math.floor(Math.random() * hooks.length)];
+      const scenes = [
+        `你想啊，半夜起来渴得不行，摸黑接自来水灌一口，第二天嗓子发干。我现在床头常备${prodName || shop+'这款'}，渴了拧开就喝，省事还放心。`,
+        `带娃的应该懂我意思——半夜冲奶最怕水质不干净。${prodName || shop+'这款'}我专门用来冲奶，宝宝肯喝，我也安心。`,
+        `办公室下午三四点最困，奶茶喝多了腻还长肉。我工位底下囤一箱${prodName || shop+'这款'}，困了来一瓶，比咖啡舒服。`,
+        `健身完那一身汗，最想来口凉的。我现在不直接灌冰自来水了，先整瓶${prodName || shop+'这款'}缓一缓，胃里舒服多了。`,
+        `夏天水放两天就有味儿，你肯定也烦。换了${prodName || shop+'这款'}之后，放多久都清清爽爽，烧饭煮茶都敢用。`
+      ];
+      const scene = scenes[Math.floor(Math.random() * scenes.length)];
+      const cta = prod
+        ? `${prodName}就挂左下角小黄车了，我自个儿家就在喝。${prod.activity ? prod.activity + '，' : ''}想要的自己去拍，好水自己会说话。`
+        : `${shop}这款就挂左下角了，苏州本地发的，隔天就到。懒得挑的直接拍链接里的组合，划算。`;
+      content.innerHTML = headHtml + renderRewriteBodyLocal(hook, scene, cta, pointText, prod, shop, hot);
+      resultBox.classList.remove('hidden');
+      return;
+    }
+
+    resultBox.classList.remove('hidden');
+    content.innerHTML = headHtml + '<div class="text-sm text-slate-400 bg-slate-50 p-3 rounded-lg">🤖 AI 正在生成脚本，稍候…</div>';
+    const sys = '你是抖音电商短视频脚本专家，深耕水饮/食品类目。请输出口语化、有真实生活场景、去AI味的口播稿，像真人在跟朋友唠嗑，不要书面腔和套话。';
+    const user = `【热点】${hot.title}（标签：${hot.tag}）\n【店铺】${shop}\n${prod ? '【商品】' + prod.name + '（' + prod.brand + '）' + (prod.price ? ' 管控价 ' + prod.price : '') + (prod.activity ? ' ' + prod.activity : '') + '\n' : ''}【要突出的卖点】${pointText}\n\n请基于以上生成一条抖音口播脚本：\n- 口语化、像真人和朋友唠嗑，别端着、别堆书面词\n- 结构：0-3秒钩子 / 场景带入 / 画面证据 / 收尾引导（挂小黄车）\n- 把卖点自然带进去，结尾软一点，不硬劝\n- 最后一行给 5 个话题标签，格式「#标签1 #标签2 …」`;
+    try {
+      const out = await callLLM(sys, user);
+      content.innerHTML = headHtml + renderAiBody(out, fallbackTags);
+    } catch (e) {
+      showToast('AI 生成失败：' + e.message + '，已用本地模板');
+      const hooks = [
+        `(对着镜头晃晃手里的瓶子)你刷到「${hotClean}」那个梗没？我昨天真试了一把，发现自己好些年水都白喝了。`,
+        `(压低声音，像说悄悄话)最近「${hotClean}」这么火不是没道理的。但我跟你讲句大实话——喝水这事儿，门道比你想得多。`,
+        `(苦笑)我妈又念叨我喝水不讲究。行，今天我就用${shop}这款，让她看看啥叫"会过日子的人"。`
+      ];
+      const hook = hooks[Math.floor(Math.random() * hooks.length)];
+      const scenes = [
+        `你想啊，半夜起来渴得不行，摸黑接自来水灌一口，第二天嗓子发干。我现在床头常备${prodName || shop+'这款'}，渴了拧开就喝，省事还放心。`,
+        `带娃的应该懂我意思——半夜冲奶最怕水质不干净。${prodName || shop+'这款'}我专门用来冲奶，宝宝肯喝，我也安心。`,
+        `办公室下午三四点最困，奶茶喝多了腻还长肉。我工位底下囤一箱${prodName || shop+'这款'}，困了来一瓶，比咖啡舒服。`,
+        `健身完那一身汗，最想来口凉的。我现在不直接灌冰自来水了，先整瓶${prodName || shop+'这款'}缓一缓，胃里舒服多了。`,
+        `夏天水放两天就有味儿，你肯定也烦。换了${prodName || shop+'这款'}之后，放多久都清清爽爽，烧饭煮茶都敢用。`
+      ];
+      const scene = scenes[Math.floor(Math.random() * scenes.length)];
+      const cta = prod
+        ? `${prodName}就挂左下角小黄车了，我自个儿家就在喝。${prod.activity ? prod.activity + '，' : ''}想要的自己去拍，好水自己会说话。`
+        : `${shop}这款就挂左下角了，苏州本地发的，隔天就到。懒得挑的直接拍链接里的组合，划算。`;
+      content.innerHTML = headHtml + renderRewriteBodyLocal(hook, scene, cta, pointText, prod, shop, hot);
+    }
+  }
+
+function copyRewrite() {
     const text = document.getElementById('rewrite-content').innerText;
     navigator.clipboard.writeText(text).then(() => alert('已复制到剪贴板'));
   }
@@ -908,7 +1068,8 @@
     meta.classList.remove('hidden');
   }
 
-  function generateOriginal() {
+  
+  async function generateOriginal() {
     const ideaIdx = document.getElementById('idea-select').value;
     const shop = document.getElementById('idea-shop-select').value;
     const point = document.getElementById('idea-selling-point').value.trim();
@@ -925,65 +1086,61 @@
     const ideaTitle = idea.title;
     const prodName = prod ? prod.name.replace(/（.*?）|\(.*?\)/g, '') : '';
     const pointText = point || (prod ? prod.sp : '水源地就在苏州边上，喝着放心');
+    const headHtml = renderOriginalHead(ideaTitle, idea, shop, prod, pointText, prodName);
+    const fallbackTags = ['#' + shop.replace('官方旗舰店', '').replace('旗舰店', ''), '#' + (idea.direction || '好水'), '#矿泉水', '#喝水日常', '#囤货'];
 
-    const hooks = [
-      `(对着镜头，像突然想到)哎我跟你说个事儿——「${ideaTitle}」这问题，我以前也没当回事，后来自己踩了坑才上心。`,
-      `(举着水)你有没有过那种时候：${ideaTitle} 想了半天还是随便凑合？今天我就把这事儿说明白。`,
-      `(叹气)每次有人问我「${ideaTitle}」，我都想直接把我家那箱水拍他脸上。来，今天好好唠唠。`
-    ];
-    const hook = hooks[Math.floor(Math.random() * hooks.length)];
+    if (!aiReady()) {
+      const hooks = [
+        `(对着镜头，像突然想到)哎我跟你说个事儿——「${ideaTitle}」这问题，我以前也没当回事，后来自己踩了坑才上心。`,
+        `(举着水)你有没有过那种时候：${ideaTitle} 想了半天还是随便凑合？今天我就把这事儿说明白。`,
+        `(叹气)每次有人问我「${ideaTitle}」，我都想直接把我家那箱水拍他脸上。来，今天好好唠唠。`
+      ];
+      const hook = hooks[Math.floor(Math.random() * hooks.length)];
+      const scenes = [
+        `咱说点实在的。早上起来那第一杯水，我都是直接喝${prodName || shop+'这款'}，不凉不烫正合适，一天状态都好点。`,
+        `出门露营野餐，我背包里必塞两瓶${prodName || shop+'这款'}。别家水喝着发涩，这个清爽，朋友都来抢。`,
+        `我家现在烧饭煮茶全用它——${prodName || shop+'这款'}。煮出来的汤、泡出来的茶，味道就是不一样，你也试试就知道了。`,
+        `孩子他妈挑水特别挑，结果现在全家都认${prodName || shop+'这款'}。说白了，入口的东西，还是得讲究点。`
+      ];
+      const scene = scenes[Math.floor(Math.random() * scenes.length)];
+      const cta = prod
+        ? `${prodName}就挂左下角了，我自己天天喝。${prod.activity ? prod.activity + '，' : ''}觉得有用的自己去拍，不喜欢划走就行。`
+        : `${shop}这款挂左下角，苏州本地发，隔天到。喜欢的朋友点个小黄车， thanks～`;
+      content.innerHTML = headHtml + renderOriginalBodyLocal(hook, scene, cta, pointText, prod, shop, idea);
+      resultBox.classList.remove('hidden');
+      return;
+    }
 
-    const scenes = [
-      `咱说点实在的。早上起来那第一杯水，我都是直接喝${prodName || shop+'这款'}，不凉不烫正合适，一天状态都好点。`,
-      `出门露营野餐，我背包里必塞两瓶${prodName || shop+'这款'}。别家水喝着发涩，这个清爽，朋友都来抢。`,
-      `我家现在烧饭煮茶全用它——${prodName || shop+'这款'}。煮出来的汤、泡出来的茶，味道就是不一样，你也试试就知道了。`,
-      `孩子他妈挑水特别挑，结果现在全家都认${prodName || shop+'这款'}。说白了，入口的东西，还是得讲究点。`
-    ];
-    const scene = scenes[Math.floor(Math.random() * scenes.length)];
-
-    const cta = prod
-      ? `${prodName}就挂左下角了，我自己天天喝。${prod.activity ? prod.activity + '，' : ''}觉得有用的自己去拍，不喜欢划走就行。`
-      : `${shop}这款挂左下角，苏州本地发，隔天到。喜欢的朋友点个小黄车， thanks～`;
-
-    content.innerHTML = `
-      <div class="script-box p-4 rounded-xl">
-        <h4 class="font-semibold text-brand-800 mb-2 text-sm">🎯 创作主题</h4>
-        <p class="text-sm text-slate-700">灵感：${ideaTitle}（${idea.direction || '通用'}）</p>
-        <p class="text-sm text-slate-700 mt-1">适配店铺：<span class="font-medium">${shop}</span></p>
-        ${prod ? `<p class="text-sm text-slate-700 mt-1">挂车商品：<span class="font-medium">${prod.name}（${prod.brand}）</span>${prod.price ? ' · 管控价 ' + prod.price : ''}${prod.activity ? ' · ' + prod.activity : ''}</p>` : ''}
-        <p class="text-sm text-slate-700 mt-1">核心卖点：<span class="font-medium">${pointText}</span></p>
-      </div>
-      <div>
-        <h4 class="font-semibold text-slate-800 mb-2 text-sm">⏱ 0-3 秒 钩子（像跟朋友唠嗑，别端着）</h4>
-        <p class="text-sm text-slate-700 bg-slate-50 p-3 rounded-lg">${hook}</p>
-      </div>
-      <div>
-        <h4 class="font-semibold text-slate-800 mb-2 text-sm">⏱ 3-20 秒 讲个真事儿</h4>
-        <p class="text-sm text-slate-700 bg-slate-50 p-3 rounded-lg">${scene}<br>顺嘴带卖点：${pointText}</p>
-      </div>
-      <div>
-        <h4 class="font-semibold text-slate-800 mb-2 text-sm">⏱ 20-35 秒 给画面</h4>
-        <p class="text-sm text-slate-700 bg-slate-50 p-3 rounded-lg">切真实镜头：倒水 / 泡茶 / 野餐摆拍 / 一家人喝。别说教，让画面替你说话。</p>
-      </div>
-      <div>
-        <h4 class="font-semibold text-slate-800 mb-2 text-sm">⏱ 35-45 秒 收尾</h4>
-        <p class="text-sm text-slate-700 bg-slate-50 p-3 rounded-lg">${cta}${prod && prod.price ? '<br>字幕打：到手 ' + prod.price : ''}</p>
-      </div>
-      <div>
-        <h4 class="font-semibold text-slate-800 mb-2 text-sm">🏷 建议标签</h4>
-        <div class="flex flex-wrap gap-2">
-          <span class="tag text-xs px-3 py-1 bg-slate-100 text-slate-600 rounded-full">#${shop.replace('官方旗舰店', '').replace('旗舰店', '')}</span>
-          <span class="tag text-xs px-3 py-1 bg-slate-100 text-slate-600 rounded-full">#${idea.direction || '好水'}</span>
-          <span class="tag text-xs px-3 py-1 bg-slate-100 text-slate-600 rounded-full">#矿泉水</span>
-          <span class="tag text-xs px-3 py-1 bg-slate-100 text-slate-600 rounded-full">#喝水日常</span>
-          <span class="tag text-xs px-3 py-1 bg-slate-100 text-slate-600 rounded-full">#囤货</span>
-        </div>
-      </div>
-    `;
     resultBox.classList.remove('hidden');
+    content.innerHTML = headHtml + '<div class="text-sm text-slate-400 bg-slate-50 p-3 rounded-lg">🤖 AI 正在生成脚本，稍候…</div>';
+    const sys = '你是抖音电商短视频脚本专家，深耕水饮/食品类目。请输出口语化、有真实生活场景、去AI味的口播稿，像真人在跟朋友唠嗑，不要书面腔和套话。';
+    const user = `【灵感主题】${ideaTitle}（方向：${idea.direction || '通用'}）\n【店铺】${shop}\n${prod ? '【商品】' + prod.name + '（' + prod.brand + '）' + (prod.price ? ' 管控价 ' + prod.price : '') + (prod.activity ? ' ' + prod.activity : '') + '\n' : ''}【要突出的卖点】${pointText}\n\n请基于以上生成一条抖音原创口播脚本：\n- 口语化、像真人和朋友唠嗑，别端着、别堆书面词\n- 结构：0-3秒钩子 / 讲个真事儿 / 给画面 / 收尾引导（挂小黄车）\n- 把卖点自然带进去，结尾软一点，不硬劝\n- 最后一行给 5 个话题标签，格式「#标签1 #标签2 …」`;
+    try {
+      const out = await callLLM(sys, user);
+      content.innerHTML = headHtml + renderAiBody(out, fallbackTags);
+    } catch (e) {
+      showToast('AI 生成失败：' + e.message + '，已用本地模板');
+      const hooks = [
+        `(对着镜头，像突然想到)哎我跟你说个事儿——「${ideaTitle}」这问题，我以前也没当回事，后来自己踩了坑才上心。`,
+        `(举着水)你有没有过那种时候：${ideaTitle} 想了半天还是随便凑合？今天我就把这事儿说明白。`,
+        `(叹气)每次有人问我「${ideaTitle}」，我都想直接把我家那箱水拍他脸上。来，今天好好唠唠。`
+      ];
+      const hook = hooks[Math.floor(Math.random() * hooks.length)];
+      const scenes = [
+        `咱说点实在的。早上起来那第一杯水，我都是直接喝${prodName || shop+'这款'}，不凉不烫正合适，一天状态都好点。`,
+        `出门露营野餐，我背包里必塞两瓶${prodName || shop+'这款'}。别家水喝着发涩，这个清爽，朋友都来抢。`,
+        `我家现在烧饭煮茶全用它——${prodName || shop+'这款'}。煮出来的汤、泡出来的茶，味道就是不一样，你也试试就知道了。`,
+        `孩子他妈挑水特别挑，结果现在全家都认${prodName || shop+'这款'}。说白了，入口的东西，还是得讲究点。`
+      ];
+      const scene = scenes[Math.floor(Math.random() * scenes.length)];
+      const cta = prod
+        ? `${prodName}就挂左下角了，我自己天天喝。${prod.activity ? prod.activity + '，' : ''}觉得有用的自己去拍，不喜欢划走就行。`
+        : `${shop}这款挂左下角，苏州本地发，隔天到。喜欢的朋友点个小黄车， thanks～`;
+      content.innerHTML = headHtml + renderOriginalBodyLocal(hook, scene, cta, pointText, prod, shop, idea);
+    }
   }
 
-  function copyOriginal() {
+function copyOriginal() {
     const text = document.getElementById('original-content').innerText;
     navigator.clipboard.writeText(text).then(() => alert('已复制到剪贴板'));
   }
@@ -1185,6 +1342,63 @@
 
   function closeBulkSpModal() {
     document.getElementById('bulk-sp-modal').classList.add('hidden');
+  }
+
+  // ================= AI 模型设置 =================
+  const AI_PRESETS = {
+    deepseek: { baseUrl: 'https://api.deepseek.com/v1', model: 'deepseek-chat', keyHint: '在 platform.deepseek.com 申请，sk- 开头', modelHint: '默认 deepseek-chat，也可用 deepseek-reasoner' },
+    doubao: { baseUrl: 'https://ark.cn-beijing.volces.com/api/v3', model: '', keyHint: '火山引擎 API Key，在 console.volcengine.com 申请', modelHint: '填方舟 Endpoint ID，形如 ep-xxxx（开通推理点后获得）' },
+    custom: { baseUrl: '', model: '', keyHint: '你的 OpenAI 兼容服务 API Key', modelHint: '对应服务的模型名' }
+  };
+
+  function updateAiStatusDot() {
+    const dot = document.getElementById('ai-status-dot');
+    if (!dot) return;
+    dot.className = 'ml-2 w-2 h-2 rounded-full ' + (aiReady() ? 'bg-emerald-500' : 'bg-slate-300');
+  }
+
+  function openAiSettings() {
+    const ai = appData.ai || {};
+    document.getElementById('ai-enabled').checked = !!ai.enabled;
+    document.getElementById('ai-provider').value = ai.provider || 'deepseek';
+    document.getElementById('ai-apikey').value = ai.apiKey || '';
+    document.getElementById('ai-baseurl').value = ai.baseUrl || '';
+    document.getElementById('ai-model').value = ai.model || '';
+    const temp = ai.temperature != null ? ai.temperature : 0.8;
+    document.getElementById('ai-temp').value = temp;
+    document.getElementById('ai-temp-val').textContent = temp;
+    const preset = AI_PRESETS[ai.provider || 'deepseek'] || AI_PRESETS.custom;
+    document.getElementById('ai-key-hint').textContent = preset.keyHint;
+    document.getElementById('ai-model-hint').textContent = preset.modelHint;
+    document.getElementById('ai-modal').classList.remove('hidden');
+  }
+
+  function closeAiSettings() {
+    document.getElementById('ai-modal').classList.add('hidden');
+  }
+
+  function onAiProviderChange() {
+    const p = document.getElementById('ai-provider').value;
+    const preset = AI_PRESETS[p] || AI_PRESETS.custom;
+    document.getElementById('ai-baseurl').value = preset.baseUrl;
+    document.getElementById('ai-model').value = preset.model;
+    document.getElementById('ai-key-hint').textContent = preset.keyHint;
+    document.getElementById('ai-model-hint').textContent = preset.modelHint;
+  }
+
+  function saveAiSettings() {
+    const ai = appData.ai || {};
+    ai.enabled = document.getElementById('ai-enabled').checked;
+    ai.provider = document.getElementById('ai-provider').value;
+    ai.apiKey = document.getElementById('ai-apikey').value.trim();
+    ai.baseUrl = document.getElementById('ai-baseurl').value.trim();
+    ai.model = document.getElementById('ai-model').value.trim();
+    ai.temperature = parseFloat(document.getElementById('ai-temp').value) || 0.8;
+    appData.ai = ai;
+    saveData(appData);
+    updateAiStatusDot();
+    closeAiSettings();
+    showToast(aiReady() ? 'AI 模型已保存，生成脚本将调用大模型' : 'AI 设置已保存（未启用或无 Key，仍用本地模板）');
   }
 
   function applyBulkSp() {
@@ -1684,6 +1898,7 @@
       '评论区是素材的第二轮生命，置顶评论引导互动。'
     ];
     document.getElementById('daily-tip').textContent = tips[new Date().getDay() % tips.length];
+    updateAiStatusDot();
   });
 </script>
 
@@ -1776,6 +1991,55 @@
       <button onclick="closeBulkSpModal()" class="flex-1 py-2.5 text-sm text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors">取消</button>
       <button onclick="applyBulkSp()" class="flex-1 py-2.5 text-sm text-white bg-brand-600 hover:bg-brand-700 rounded-xl transition-colors">确认应用</button>
     </div>
+  </div>
+</div>
+
+<!-- AI 模型设置弹窗 -->
+<div id="ai-modal" class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onclick="if(event.target===this)closeAiSettings()">
+  <div class="bg-white rounded-2xl p-6 max-w-lg w-full shadow-xl max-h-[90vh] overflow-y-auto">
+    <h3 class="text-lg font-bold text-slate-800 mb-1"><i class="fa-solid fa-robot mr-2 text-brand-600"></i>AI 模型设置</h3>
+    <p class="text-xs text-slate-500 mb-4">填你自己的大模型 Key，生成脚本时自动调用，质量更高。Key 仅存浏览器本地，不会上传任何服务器。</p>
+
+    <label class="flex items-center justify-between bg-slate-50 px-4 py-3 rounded-xl mb-4 cursor-pointer">
+      <span class="text-sm font-medium text-slate-700">启用 AI 生成</span>
+      <input id="ai-enabled" type="checkbox" class="w-5 h-5 accent-brand-600">
+    </label>
+
+    <div class="space-y-4">
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1.5">模型服务商</label>
+        <select id="ai-provider" onchange="onAiProviderChange()" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500">
+          <option value="deepseek">DeepSeek</option>
+          <option value="doubao">豆包（火山方舟）</option>
+          <option value="custom">自定义 OpenAI 兼容</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1.5">API Key</label>
+        <input id="ai-apikey" type="password" placeholder="sk-... 或 ark-..." class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500" autocomplete="off">
+        <p id="ai-key-hint" class="text-xs text-slate-400 mt-1"></p>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1.5">Base URL</label>
+        <input id="ai-baseurl" type="text" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1.5">模型名</label>
+        <input id="ai-model" type="text" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500">
+        <p id="ai-model-hint" class="text-xs text-slate-400 mt-1"></p>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1.5">创作温度：<span id="ai-temp-val" class="text-brand-600 font-semibold">0.8</span></label>
+        <input id="ai-temp" type="range" min="0" max="1.5" step="0.1" value="0.8" oninput="document.getElementById('ai-temp-val').textContent=this.value" class="w-full accent-brand-600">
+        <p class="text-xs text-slate-400 mt-1">越低越稳重，越高越发散。建议 0.7–0.9。</p>
+      </div>
+    </div>
+
+    <div class="flex gap-3 mt-6">
+      <button onclick="closeAiSettings()" class="flex-1 py-2.5 rounded-xl text-sm border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors">取消</button>
+      <button onclick="saveAiSettings()" class="flex-1 py-2.5 rounded-xl text-sm bg-brand-600 hover:bg-brand-700 text-white font-medium transition-colors">保存</button>
+    </div>
+    <p class="text-[11px] text-slate-400 mt-3 leading-relaxed">说明：DeepSeek 默认 base=https://api.deepseek.com/v1、模型 deepseek-chat；豆包（火山方舟）需在 <a href="https://console.volcengine.com/ark" target="_blank" class="text-brand-600 underline">方舟控制台</a> 开通推理点后，把模型名填为你的 Endpoint ID（形如 ep-xxxx）；自定义可填任何兼容 OpenAI 的接口。</p>
   </div>
 </div>
 
