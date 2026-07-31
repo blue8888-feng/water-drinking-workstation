@@ -907,6 +907,120 @@
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   }
 
+  // ================= V2.0 统一 ID 体系（数据层升级，不改页面）=================
+  // 规范层：appData.v2
+  //   商品 SP001 / 脚本 JB001 / 视频 SPV001 / 千川 QC001 / 达人 DR001 / 团长 TZ001
+  // 旧数组（videoRequests / qianchuan / creators / reviews ...）原样保留，页面继续按索引读取，保证兼容。
+  const V2_PREFIX = { SP: 'products', JB: 'scripts', SPV: 'videos', QC: 'qianchuan', DR: 'creators', TZ: 'leaders' };
+
+  function v2NextId(model, prefix) {
+    const arr = (model && model[V2_PREFIX[prefix]]) || [];
+    let max = 0;
+    arr.forEach(it => {
+      const m = /^([A-Z]+)(\d+)$/.exec(it.id || '');
+      if (m && m[1] === prefix) max = Math.max(max, parseInt(m[2], 10));
+    });
+    return prefix + String(max + 1).padStart(3, '0');
+  }
+
+  function shopOfBrand(brand) {
+    if (typeof SHOP_BRANDS === 'undefined') return '';
+    return Object.keys(SHOP_BRANDS).find(s => (SHOP_BRANDS[s] || []).includes(brand)) || '';
+  }
+
+  // 旧视频需求池状态 -> V2 视频状态枚举
+  const V2_VIDEO_STATUS_MAP = {
+    '待写脚本': '待制作', '脚本中': '待制作',
+    '待拍摄': '剪辑中', '拍摄中': '剪辑中', '剪辑中': '剪辑中',
+    '已发布': '已发布', '废弃': '淘汰'
+  };
+  const V2_VIDEO_STATUSES = ['待制作', '剪辑中', '已发布', '测试中', '放量', '淘汰'];
+
+  // 把旧数据结构迁移进 appData.v2（幂等：已迁移则跳过，不覆盖 V2 阶段写入的数据）
+  function migrateV2(data) {
+    if (!data) return;
+    if (data.v2 && data.v2.version === 2 && Array.isArray(data.v2.products)) return;
+
+    const model = {
+      version: 2,
+      migratedAt: new Date().toISOString(),
+      products: [], scripts: [], videos: [], qianchuan: [], creators: [], leaders: []
+    };
+
+    // 1) 商品 SP001…（PRODUCTS 基础目录 + productEdits 编辑项）
+    (typeof PRODUCTS !== 'undefined' ? PRODUCTS : []).forEach(p => {
+      const e = (data.productEdits || {})[p.id] || {};
+      model.products.push({
+        id: v2NextId(model, 'SP'),
+        name: p.name,
+        brand: p.brand,
+        shop: shopOfBrand(p.brand),
+        sp: (e.sp !== undefined && e.sp !== '') ? e.sp : p.sp,
+        price: e.price || '',
+        activity: e.activity || '',
+        tier: e.tier || '',
+        audience: e.audience || '',
+        materialDir: e.materialDir || '',
+        legacyId: p.id
+      });
+    });
+
+    // 2) 视频 SPV001…（来自视频需求池 videoRequests）
+    (data.videoRequests || []).forEach(v => {
+      model.videos.push({
+        id: v2NextId(model, 'SPV'),
+        name: v.title || '未命名视频',
+        scriptId: '',
+        productId: '',
+        status: V2_VIDEO_STATUS_MAP[v.status] || (v.status || '待制作'),
+        shop: v.shop || '', type: v.type || '', priority: v.priority || '',
+        owner: v.owner || '', due: v.due || '', material: v.material || '无', note: v.note || '',
+        legacyIndex: model.videos.length
+      });
+    });
+
+    // 3) 千川 QC001…（来自 qianchuan）
+    (data.qianchuan || []).forEach(q => {
+      const spend = Number(q.spend) || 0;
+      const deals = Number(q.deals) || 0;
+      model.qianchuan.push({
+        id: v2NextId(model, 'QC'),
+        videoId: '', productId: '',
+        planName: q.name || '',
+        spend: spend, deals: deals,
+        roi: spend ? +(deals / spend).toFixed(2) : 0,
+        shop: q.shop || '', type: q.type || '', budget: Number(q.budget) || 0,
+        material: q.material || '', status: q.status || '投放中',
+        legacyIndex: model.qianchuan.length
+      });
+    });
+
+    // 4) 达人 DR001…（来自 creators）
+    (data.creators || []).forEach(c => {
+      model.creators.push({
+        id: v2NextId(model, 'DR'),
+        info: {
+          name: c.name || '', platform: c.platform || '抖音', region: c.region || '',
+          fans: Number(c.fans) || 0, commission: Number(c.commission) || 0, status: c.status || '沟通中'
+        },
+        productIds: [], deals: Number(c.deals) || 0, note: c.note || '',
+        legacyIndex: model.creators.length
+      });
+    });
+
+    // 5) 团长 TZ001…（V2 新实体，暂无旧数据，留空待录入）
+    // 6) 脚本 JB001…（V2 新实体，暂无持久化旧数据，留空待录入）
+    data.v2 = model;
+    saveData(data);
+  }
+
+  // 手动重跑迁移：force=true 时清空已有 v2 重建（供控制台 / 后续「数据迁移」按钮调用）
+  window.runV2Migration = function (force) {
+    if (force) appData.v2 = null;
+    migrateV2(appData);
+    return appData.v2;
+  };
+
   let appData = loadData();
 
   // AI 模型配置是否可用（已开启且填了 Key）
@@ -3360,6 +3474,7 @@ ${r.script || '未填写'}
   // ================= 初始化 =================
   document.addEventListener('DOMContentLoaded', async () => {
     await tryLoadFromHash();
+    migrateV2(appData); // V2.0 数据层迁移（幂等，旧页面兼容）
     updateDate();
     renderTasks();
     // 如果是新的一天，自动刷新灵感
