@@ -32,7 +32,13 @@
             }
           }
         }
-      }
+      },
+      safelist: [
+        'bg-slate-100','text-slate-700','bg-blue-100','text-blue-700','bg-indigo-100','text-indigo-700',
+        'bg-violet-100','text-violet-700','bg-amber-100','text-amber-700','bg-emerald-100','text-emerald-700',
+        'bg-gray-100','text-gray-700','bg-red-100','text-red-700','bg-amber-50','text-amber-700',
+        'bg-red-50','text-red-700','bg-emerald-50','text-emerald-700'
+      ]
     }
   </script>
   <style>
@@ -94,17 +100,33 @@
     </div>
 
     <nav class="flex-1 p-4 space-y-2 overflow-y-auto">
-      <button onclick="switchTab('daily')" id="nav-daily" class="nav-item active w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 transition-all">
+      <button onclick="switchTab('cockpit')" id="nav-cockpit" class="nav-item w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 transition-all">
+        <i class="fa-solid fa-gauge-high w-5 text-center"></i>
+        <span>运营驾驶舱</span>
+      </button>
+      <button onclick="switchTab('daily')" id="nav-daily" class="nav-item w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 transition-all">
         <i class="fa-solid fa-clipboard-check w-5 text-center"></i>
         <span>每日计划</span>
       </button>
       <button onclick="switchTab('ideas')" id="nav-ideas" class="nav-item w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 transition-all">
         <i class="fa-regular fa-lightbulb w-5 text-center"></i>
-        <span>选题每日灵感</span>
+        <span>选题灵感</span>
       </button>
       <button onclick="switchTab('trending')" id="nav-trending" class="nav-item w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 transition-all">
         <i class="fa-solid fa-fire w-5 text-center"></i>
-        <span>爆款热点视频 / 二创</span>
+        <span>爆款热点 / 二创</span>
+      </button>
+      <button onclick="switchTab('videopool')" id="nav-videopool" class="nav-item w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 transition-all">
+        <i class="fa-solid fa-list-check w-5 text-center"></i>
+        <span>视频需求池</span>
+      </button>
+      <button onclick="switchTab('qianchuan')" id="nav-qianchuan" class="nav-item w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 transition-all">
+        <i class="fa-solid fa-bullseye w-5 text-center"></i>
+        <span>千川投放</span>
+      </button>
+      <button onclick="switchTab('creators')" id="nav-creators" class="nav-item w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 transition-all">
+        <i class="fa-solid fa-users w-5 text-center"></i>
+        <span>达人合作</span>
       </button>
       <button onclick="switchTab('review')" id="nav-review" class="nav-item w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 transition-all">
         <i class="fa-solid fa-chart-column w-5 text-center"></i>
@@ -116,7 +138,7 @@
       </button>
       <button onclick="switchTab('products')" id="nav-products" class="nav-item w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 transition-all">
         <i class="fa-solid fa-box-open w-5 text-center"></i>
-        <span>在售商品</span>
+        <span>商品管理</span>
       </button>
     </nav>
 
@@ -169,7 +191,7 @@
     <div id="content-area" class="flex-1 overflow-y-auto p-8">
 
       <!-- 1. 每日计划 -->
-      <section id="tab-daily" class="tab-content fade-in">
+      <section id="tab-daily" class="tab-content hidden fade-in">
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
           <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
             <div class="flex items-center justify-between mb-4">
@@ -389,6 +411,20 @@
                     <p id="rev-product-meta" class="hidden text-xs text-slate-500 mt-1.5 bg-slate-50 rounded-lg px-3 py-2"></p>
                   </div>
                 </div>
+                <div class="grid grid-cols-2 gap-4">
+                  <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">关联视频需求 <span class="text-xs text-slate-400 font-normal">（可选）</span></label>
+                    <select id="rev-video-ref" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500">
+                      <option value="">不关联</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">关联千川计划 <span class="text-xs text-slate-400 font-normal">（可选）</span></label>
+                    <select id="rev-plan-ref" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500">
+                      <option value="">不关联</option>
+                    </select>
+                  </div>
+                </div>
                 <div>
                   <label class="block text-sm font-medium text-slate-700 mb-1.5">脚本内容 / 口播稿</label>
                   <textarea id="rev-script" rows="4" placeholder="把脚本或口播稿贴到这里，复盘时结合数据一起看..." class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500 auto-resize" oninput="autoResize(this)"></textarea>
@@ -581,6 +617,9 @@
                   <th class="px-4 py-3 font-medium w-28">管控价</th>
                   <th class="px-4 py-3 font-medium w-36">目前活动</th>
                   <th class="px-4 py-3 font-medium">卖点</th>
+                  <th class="px-4 py-3 font-medium w-24">商品等级</th>
+                  <th class="px-4 py-3 font-medium w-32">人群定位</th>
+                  <th class="px-4 py-3 font-medium w-36">素材方向</th>
                   <th class="px-4 py-3 font-medium w-20">操作</th>
                 </tr>
               </thead>
@@ -589,6 +628,241 @@
           </div>
         </div>
       </section>
+
+      <!-- 0. 运营驾驶舱 -->
+      <section id="tab-cockpit" class="tab-content hidden fade-in">
+        <div class="flex items-center justify-between mb-5 flex-wrap gap-3">
+          <div>
+            <h3 class="text-lg font-semibold text-slate-800">运营驾驶舱</h3>
+            <p class="text-sm text-slate-500 mt-1">5 家店经营总览 · 数据手动录入，支持导出 / 导入备份</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="editStore()" class="text-sm px-4 py-2 bg-white border border-slate-200 hover:border-brand-300 rounded-lg transition-colors"><i class="fa-solid fa-pen-to-square mr-1 text-brand-600"></i>录入店铺数据</button>
+          </div>
+        </div>
+
+        <div id="cockpit-total" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6"></div>
+
+        <h4 class="font-semibold text-slate-700 mb-3"><i class="fa-solid fa-store mr-1.5 text-brand-600"></i>5 家店铺经营</h4>
+        <div id="cockpit-shops" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8"></div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+            <div class="flex items-center justify-between mb-3">
+              <h4 class="font-semibold text-slate-700"><i class="fa-solid fa-trophy mr-1.5 text-amber-500"></i>商品销售排名</h4>
+              <button onclick="addRankRow()" class="text-xs px-3 py-1.5 bg-brand-600 hover:bg-brand-700 text-white rounded-lg"><i class="fa-solid fa-plus mr-1"></i>加一行</button>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead><tr class="bg-slate-50 text-left text-xs text-slate-500 uppercase">
+                  <th class="px-2 py-2 font-medium">店铺</th><th class="px-2 py-2 font-medium">商品</th>
+                  <th class="px-2 py-2 font-medium w-20">销量</th><th class="px-2 py-2 font-medium w-24">销售额</th><th class="px-2 py-2"></th>
+                </tr></thead>
+                <tbody id="cockpit-rank"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+            <h4 class="font-semibold text-slate-700 mb-3"><i class="fa-solid fa-triangle-exclamation mr-1.5 text-red-500"></i>异常提醒</h4>
+            <div id="cockpit-alerts" class="space-y-2"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 5. 视频需求池 -->
+      <section id="tab-videopool" class="tab-content hidden fade-in">
+        <div class="flex items-center justify-between mb-5 flex-wrap gap-3">
+          <div>
+            <h3 class="text-lg font-semibold text-slate-800">视频需求池</h3>
+            <p class="text-sm text-slate-500 mt-1">选题 → 脚本 → 拍摄 → 剪辑 → 发布 全流程管理</p>
+          </div>
+          <button onclick="openVpModal()" class="text-sm px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-lg transition-colors flex items-center">
+            <i class="fa-solid fa-plus mr-1.5"></i>新增需求
+          </button>
+        </div>
+
+        <div id="vp-summary" class="grid grid-cols-2 md:grid-cols-6 gap-3 mb-5"></div>
+
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden mb-6">
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead><tr class="bg-slate-50 text-left text-xs text-slate-500 uppercase">
+                <th class="px-3 py-3 font-medium">标题</th><th class="px-3 py-3 font-medium">店铺</th>
+                <th class="px-3 py-3 font-medium">类型</th><th class="px-3 py-3 font-medium">优先级</th>
+                <th class="px-3 py-3 font-medium">状态</th><th class="px-3 py-3 font-medium">负责人</th>
+                <th class="px-3 py-3 font-medium">截止</th><th class="px-3 py-3 font-medium">素材</th><th class="px-3 py-3 font-medium w-24">操作</th>
+              </tr></thead>
+              <tbody id="vp-table" class="divide-y divide-slate-100"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <h4 class="font-semibold text-slate-700 mb-3"><i class="fa-solid fa-calendar-week mr-1.5 text-brand-600"></i>剪辑排期（按截止日）</h4>
+        <div id="vp-schedule" class="space-y-2"></div>
+      </section>
+
+      <!-- 6. 千川投放管理 -->
+      <section id="tab-qianchuan" class="tab-content hidden fade-in">
+        <div class="flex items-center justify-between mb-5 flex-wrap gap-3">
+          <div>
+            <h3 class="text-lg font-semibold text-slate-800">千川投放管理</h3>
+            <p class="text-sm text-slate-500 mt-1">计划 / 预算 / 消耗 / 成交 / ROI / 素材表现</p>
+          </div>
+          <button onclick="openQcModal()" class="text-sm px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-lg transition-colors flex items-center">
+            <i class="fa-solid fa-plus mr-1.5"></i>新增计划
+          </button>
+        </div>
+
+        <div id="qc-summary" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5"></div>
+
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead><tr class="bg-slate-50 text-left text-xs text-slate-500 uppercase">
+                <th class="px-3 py-3 font-medium">计划</th><th class="px-3 py-3 font-medium">店铺</th>
+                <th class="px-3 py-3 font-medium">类型</th><th class="px-3 py-3 font-medium">预算</th>
+                <th class="px-3 py-3 font-medium">消耗</th><th class="px-3 py-3 font-medium">成交</th>
+                <th class="px-3 py-3 font-medium">ROI</th><th class="px-3 py-3 font-medium">素材</th>
+                <th class="px-3 py-3 font-medium">状态</th><th class="px-3 py-3 font-medium w-24">操作</th>
+              </tr></thead>
+              <tbody id="qc-table" class="divide-y divide-slate-100"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- 7. 达人合作管理 -->
+      <section id="tab-creators" class="tab-content hidden fade-in">
+        <div class="flex items-center justify-between mb-5 flex-wrap gap-3">
+          <div>
+            <h3 class="text-lg font-semibold text-slate-800">达人合作管理</h3>
+            <p class="text-sm text-slate-500 mt-1">达人名单 / 地区 / 佣金 / 合作状态 / 成交</p>
+          </div>
+          <button onclick="openCrModal()" class="text-sm px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-lg transition-colors flex items-center">
+            <i class="fa-solid fa-plus mr-1.5"></i>新增达人
+          </button>
+        </div>
+
+        <div id="cr-summary" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5"></div>
+
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead><tr class="bg-slate-50 text-left text-xs text-slate-500 uppercase">
+                <th class="px-3 py-3 font-medium">达人</th><th class="px-3 py-3 font-medium">平台</th>
+                <th class="px-3 py-3 font-medium">地区</th><th class="px-3 py-3 font-medium">粉丝</th>
+                <th class="px-3 py-3 font-medium">佣金</th><th class="px-3 py-3 font-medium">状态</th>
+                <th class="px-3 py-3 font-medium">成交</th><th class="px-3 py-3 font-medium w-24">操作</th>
+              </tr></thead>
+              <tbody id="cr-table" class="divide-y divide-slate-100"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- 店铺数据录入弹窗 -->
+      <div id="store-modal" class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onclick="if(event.target===this)closeStoreModal()">
+        <div class="bg-white rounded-2xl p-6 w-full max-w-2xl shadow-xl max-h-[90vh] overflow-y-auto">
+          <h3 class="text-lg font-bold text-slate-800 mb-4"><i class="fa-solid fa-store mr-1.5 text-brand-600"></i>店铺经营数据录入</h3>
+          <div id="store-form" class="space-y-3"></div>
+          <div class="flex gap-2 mt-5">
+            <button onclick="saveStores()" class="flex-1 px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-lg">保存</button>
+            <button onclick="closeStoreModal()" class="px-4 py-2.5 text-slate-500 hover:text-slate-700 rounded-lg">取消</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 视频需求弹窗 -->
+      <div id="vp-modal" class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onclick="if(event.target===this)closeVpModal()">
+        <div class="bg-white rounded-2xl p-6 w-full max-w-lg shadow-xl max-h-[90vh] overflow-y-auto">
+          <h3 id="vp-modal-title" class="text-lg font-bold text-slate-800 mb-4"><i class="fa-solid fa-list-check mr-1.5 text-brand-600"></i>视频需求</h3>
+          <input type="hidden" id="vp-id">
+          <div class="space-y-3">
+            <div><label class="text-xs text-slate-500">标题</label><input id="vp-title" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"></div>
+            <div class="grid grid-cols-2 gap-3">
+              <div><label class="text-xs text-slate-500">店铺</label><select id="vp-shop" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"></select></div>
+              <div><label class="text-xs text-slate-500">类型</label><select id="vp-type" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm">
+                <option>种草</option><option>引流</option><option>挂车</option><option>直播切片</option><option>品牌</option></select></div>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div><label class="text-xs text-slate-500">优先级</label><select id="vp-priority" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm">
+                <option>高</option><option>中</option><option>低</option></select></div>
+              <div><label class="text-xs text-slate-500">状态</label><select id="vp-status" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm">
+                <option>待写脚本</option><option>脚本中</option><option>待拍摄</option><option>拍摄中</option><option>剪辑中</option><option>已发布</option><option>废弃</option></select></div>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div><label class="text-xs text-slate-500">负责人</label><input id="vp-owner" placeholder="剪辑 / 自建" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"></div>
+              <div><label class="text-xs text-slate-500">截止日</label><input id="vp-due" type="date" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"></div>
+            </div>
+            <div><label class="text-xs text-slate-500">素材状态</label><select id="vp-material" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm">
+              <option>无</option><option>采集中</option><option>已备</option></select></div>
+            <div><label class="text-xs text-slate-500">脚本 / 备注</label><textarea id="vp-note" rows="3" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"></textarea></div>
+          </div>
+          <div class="flex gap-2 mt-5">
+            <button onclick="saveVp()" class="flex-1 px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-lg">保存</button>
+            <button onclick="closeVpModal()" class="px-4 py-2.5 text-slate-500 hover:text-slate-700 rounded-lg">取消</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 千川计划弹窗 -->
+      <div id="qc-modal" class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onclick="if(event.target===this)closeQcModal()">
+        <div class="bg-white rounded-2xl p-6 w-full max-w-lg shadow-xl max-h-[90vh] overflow-y-auto">
+          <h3 id="qc-modal-title" class="text-lg font-bold text-slate-800 mb-4"><i class="fa-solid fa-bullseye mr-1.5 text-brand-600"></i>千川计划</h3>
+          <input type="hidden" id="qc-id">
+          <div class="space-y-3">
+            <div><label class="text-xs text-slate-500">计划名称</label><input id="qc-name" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"></div>
+            <div class="grid grid-cols-2 gap-3">
+              <div><label class="text-xs text-slate-500">店铺</label><select id="qc-shop" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"></select></div>
+              <div><label class="text-xs text-slate-500">类型</label><select id="qc-type" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm">
+                <option>短视频引流</option><option>直播间引流</option><option>商品卡</option></select></div>
+            </div>
+            <div class="grid grid-cols-3 gap-3">
+              <div><label class="text-xs text-slate-500">预算</label><input id="qc-budget" type="number" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"></div>
+              <div><label class="text-xs text-slate-500">消耗</label><input id="qc-spend" type="number" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"></div>
+              <div><label class="text-xs text-slate-500">成交</label><input id="qc-deals" type="number" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"></div>
+            </div>
+            <div><label class="text-xs text-slate-500">素材</label><input id="qc-material" placeholder="素材名 / 视频ID" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"></div>
+            <div><label class="text-xs text-slate-500">状态</label><select id="qc-status" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm">
+              <option>投放中</option><option>暂停</option><option>结束</option></select></div>
+          </div>
+          <div class="flex gap-2 mt-5">
+            <button onclick="saveQc()" class="flex-1 px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-lg">保存</button>
+            <button onclick="closeQcModal()" class="px-4 py-2.5 text-slate-500 hover:text-slate-700 rounded-lg">取消</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 达人弹窗 -->
+      <div id="cr-modal" class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onclick="if(event.target===this)closeCrModal()">
+        <div class="bg-white rounded-2xl p-6 w-full max-w-lg shadow-xl max-h-[90vh] overflow-y-auto">
+          <h3 id="cr-modal-title" class="text-lg font-bold text-slate-800 mb-4"><i class="fa-solid fa-users mr-1.5 text-brand-600"></i>达人合作</h3>
+          <input type="hidden" id="cr-id">
+          <div class="space-y-3">
+            <div class="grid grid-cols-2 gap-3">
+              <div><label class="text-xs text-slate-500">达人名</label><input id="cr-name" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"></div>
+              <div><label class="text-xs text-slate-500">平台</label><select id="cr-platform" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm">
+                <option>抖音</option><option>快手</option><option>小红书</option><option>视频号</option></select></div>
+            </div>
+            <div class="grid grid-cols-3 gap-3">
+              <div><label class="text-xs text-slate-500">地区</label><input id="cr-region" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"></div>
+              <div><label class="text-xs text-slate-500">粉丝量</label><input id="cr-fans" type="number" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"></div>
+              <div><label class="text-xs text-slate-500">佣金%</label><input id="cr-commission" type="number" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"></div>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div><label class="text-xs text-slate-500">状态</label><select id="cr-status" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm">
+                <option>沟通中</option><option>已寄样</option><option>合作中</option><option>已结束</option><option>终止</option></select></div>
+              <div><label class="text-xs text-slate-500">成交</label><input id="cr-deals" type="number" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"></div>
+            </div>
+            <div><label class="text-xs text-slate-500">备注</label><textarea id="cr-note" rows="2" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"></textarea></div>
+          </div>
+          <div class="flex gap-2 mt-5">
+            <button onclick="saveCr()" class="flex-1 px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-lg">保存</button>
+            <button onclick="closeCrModal()" class="px-4 py-2.5 text-slate-500 hover:text-slate-700 rounded-lg">取消</button>
+          </div>
+        </div>
+      </div>
 
     </div>
   </main>
@@ -611,7 +885,21 @@
       memoItems: [],
       lastDate: new Date().toDateString(),
       ai: { enabled: false, provider: 'deepseek', apiKey: '', baseUrl: 'https://api.deepseek.com/v1', model: 'deepseek-chat', temperature: 0.8 },
-      hotApi: { provider: '60s', customUrl: '', autoRefresh: true }
+      hotApi: { provider: '60s', customUrl: '', autoRefresh: true },
+      // ===== 运营驾驶舱：5 家店经营数据（手动录入/导入）=====
+      shops: [
+        { id: 'dt', name: '洞庭山官方旗舰店', gmv: 0, target: 200000, spend: 0, orders: 0 },
+        { id: 'dtq', name: '洞庭山泉官方旗舰店', gmv: 0, target: 50000, spend: 0, orders: 0 },
+        { id: 'ss', name: '蘇泉水饮旗舰店', gmv: 0, target: 50000, spend: 0, orders: 0 },
+        { id: 'hs', name: '好水严选', gmv: 0, target: 50000, spend: 0, orders: 0 },
+        { id: 'hq', name: '虎丘官方旗舰店', gmv: 0, target: 50000, spend: 0, orders: 0 }
+      ],
+      // ===== 视频需求池 =====
+      videoRequests: [],
+      // ===== 千川投放计划 =====
+      qianchuan: [],
+      // ===== 达人合作 =====
+      creators: []
     };
   }
 
@@ -643,21 +931,29 @@
     document.getElementById('nav-' + tabName).classList.add('active');
 
     const titles = {
+      cockpit: '运营驾驶舱',
       daily: '每日计划',
       ideas: '选题每日灵感',
       trending: '爆款热点视频 / 二创',
+      videopool: '视频需求池',
+      qianchuan: '千川投放管理',
+      creators: '达人合作管理',
       review: '内容复盘',
       memo: '备忘录',
-      products: '在售商品'
+      products: '商品管理'
     };
     document.getElementById('page-title').textContent = titles[tabName];
 
+    if (tabName === 'cockpit') renderCockpit();
     if (tabName === 'ideas') { renderIdeas(); initIdeaScript(); }
     if (tabName === 'trending') {
       const hotApi = appData.hotApi || { provider: '60s', autoRefresh: true };
       if (hotListData === hotExamples || hotApi.autoRefresh !== false) renderHotList();
       populateProductSelect();
     }
+    if (tabName === 'videopool') renderVideoPool();
+    if (tabName === 'qianchuan') renderQianchuan();
+    if (tabName === 'creators') renderCreators();
     if (tabName === 'review') { renderReviewHistory(); fillReviewDefaults(); }
     if (tabName === 'memo') initMemoSection();
     if (tabName === 'products') renderProducts();
@@ -1488,7 +1784,7 @@ function copyOriginal() {
     const base = PRODUCTS.find(p => p.id === id);
     if (!base) return null;
     const edit = (appData.productEdits || {})[id] || {};
-    return { ...base, price: edit.price || '', activity: edit.activity || '', sp: edit.sp !== undefined && edit.sp !== '' ? edit.sp : base.sp };
+    return { ...base, price: edit.price || '', activity: edit.activity || '', sp: edit.sp !== undefined && edit.sp !== '' ? edit.sp : base.sp, tier: edit.tier || '', audience: edit.audience || '', materialDir: edit.materialDir || '' };
   }
 
   let _lastFilteredProducts = [];
@@ -1543,7 +1839,7 @@ function copyOriginal() {
 
     const body = document.getElementById('prod-table-body');
     if (list.length === 0) {
-      body.innerHTML = '<tr><td colspan="8" class="px-4 py-10 text-center text-slate-400 text-sm">没有符合条件的商品</td></tr>';
+      body.innerHTML = '<tr><td colspan="11" class="px-4 py-10 text-center text-slate-400 text-sm">没有符合条件的商品</td></tr>';
       updateProdCheckState();
       return;
     }
@@ -1559,6 +1855,9 @@ function copyOriginal() {
         <td class="px-4 py-3"><input value="${escapeAttr(p.price)}" placeholder="¥ —" onchange="saveProdField('${p.id}','price',this.value)" class="w-24 px-2 py-1.5 text-sm bg-slate-50 border border-transparent hover:border-slate-200 focus:border-brand-500 focus:bg-white rounded-lg transition-colors"></td>
         <td class="px-4 py-3"><input value="${escapeAttr(p.activity)}" placeholder="点击填写" onchange="saveProdField('${p.id}','activity',this.value)" class="w-32 px-2 py-1.5 text-sm bg-slate-50 border border-transparent hover:border-slate-200 focus:border-brand-500 focus:bg-white rounded-lg transition-colors"></td>
         <td class="px-4 py-3"><textarea rows="1" oninput="autoResize(this)" onchange="saveProdField('${p.id}','sp',this.value)" class="auto-resize w-full min-w-[280px] px-2 py-1.5 text-sm bg-slate-50 border border-transparent hover:border-slate-200 focus:border-brand-500 focus:bg-white rounded-lg transition-colors">${escapeHtml(p.sp)}</textarea></td>
+        <td class="px-4 py-3"><select onchange="saveProdField('${p.id}','tier',this.value)" class="w-24 px-2 py-1.5 text-sm bg-slate-50 border border-transparent hover:border-slate-200 focus:border-brand-500 focus:bg-white rounded-lg transition-colors"><option value=""></option><option ${p.tier==='S级'?'selected':''}>S级</option><option ${p.tier==='A级'?'selected':''}>A级</option><option ${p.tier==='B级'?'selected':''}>B级</option></select></td>
+        <td class="px-4 py-3"><input value="${escapeAttr(p.audience)}" placeholder="如家庭/母婴" onchange="saveProdField('${p.id}','audience',this.value)" class="w-32 px-2 py-1.5 text-sm bg-slate-50 border border-transparent hover:border-slate-200 focus:border-brand-500 focus:bg-white rounded-lg transition-colors"></td>
+        <td class="px-4 py-3"><input value="${escapeAttr(p.materialDir)}" placeholder="如产地实拍" onchange="saveProdField('${p.id}','materialDir',this.value)" class="w-36 px-2 py-1.5 text-sm bg-slate-50 border border-transparent hover:border-slate-200 focus:border-brand-500 focus:bg-white rounded-lg transition-colors"></td>
         <td class="px-4 py-3"><button onclick="goRewrite('${p.id}')" class="text-xs px-3 py-1.5 bg-brand-50 hover:bg-brand-100 text-brand-700 rounded-lg whitespace-nowrap transition-colors"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i>去二创</button></td>
       </tr>`;
     }).join('');
@@ -1756,8 +2055,17 @@ function copyOriginal() {
     if (pd && !pd.value) pd.value = today;
     const et = document.getElementById('rev-entertime');
     if (et && !et.value) et.value = nowLocal;
-    // 默认店铺已写在 HTML，这里初始化商品下拉
+    // 默认店铺已写在 HTML，这里初始化商品下拉与关联下拉
     populateReviewProductSelect(document.getElementById('rev-shop-select').value);
+    populateReviewRefs();
+  }
+
+  function populateReviewRefs() {
+    const vsel = document.getElementById('rev-video-ref');
+    const psel = document.getElementById('rev-plan-ref');
+    if (!vsel || !psel) return;
+    vsel.innerHTML = '<option value="">不关联</option>' + (appData.videoRequests || []).map(v => `<option value="${escapeAttr(v.title || '')}">${escapeHtml(v.title || '未命名需求')}</option>`).join('');
+    psel.innerHTML = '<option value="">不关联</option>' + (appData.qianchuan || []).map(q => `<option value="${escapeAttr(q.name || '')}">${escapeHtml(q.name || '未命名计划')}</option>`).join('');
   }
 
   let currentReviewReport = null;
@@ -1848,8 +2156,12 @@ function copyOriginal() {
       suggestions.push('小加预算测一波；顺手把脚本结构复制给同类选题接着用。');
     }
 
+    const videoRef = document.getElementById('rev-video-ref').value || '';
+    const planRef = document.getElementById('rev-plan-ref').value || '';
+
     const reportBase = {
       title, script, shop, productId, productName, productBrand,
+      videoRef, planRef,
       play, like, comment, share, finish, s5, ctr, cvr, roi, cost,
       pubDate, enterTime,
       engagementRate, likeRate, score, diagnosis, suggestions
@@ -1944,6 +2256,8 @@ ${script || '未填写'}
         ${report.productName ? `<span>📦 商品：${report.productName}${report.productBrand ? '（' + report.productBrand + '）' : ''}</span>` : ''}
         ${report.pubDate ? `<span>📅 发布日期：${report.pubDate}</span>` : ''}
         ${report.enterTime ? `<span>🕒 录入时间：${report.enterTime.replace('T', ' ')}</span>` : ''}
+        ${report.videoRef ? `<span>🔗 视频需求：${escapeHtml(report.videoRef)}</span>` : ''}
+        ${report.planRef ? `<span>🎯 千川计划：${escapeHtml(report.planRef)}</span>` : ''}
       </div>
       <div class="flex items-center justify-between ${scoreBg} rounded-xl p-4">
         <div>
@@ -2016,6 +2330,8 @@ ${script || '未填写'}
           <span>ROI ${r.roi}</span>
           <span>完播 ${r.finish}%</span>
           <span>CTR ${r.ctr}%</span>
+          ${r.videoRef ? `<span class="text-brand-600">🔗 ${escapeHtml(r.videoRef)}</span>` : ''}
+          ${r.planRef ? `<span class="text-indigo-600">🎯 ${escapeHtml(r.planRef)}</span>` : ''}
         </div>
       </div>
     `).join('');
@@ -2075,6 +2391,9 @@ ${script || '未填写'}
       document.getElementById('rev-product-select').value = '';
       document.getElementById('rev-product-meta').classList.add('hidden');
     }
+    populateReviewRefs();
+    document.getElementById('rev-video-ref').value = r.videoRef || '';
+    document.getElementById('rev-plan-ref').value = r.planRef || '';
     document.getElementById('rev-pubdate').value = r.pubDate || '';
     document.getElementById('rev-entertime').value = r.enterTime || '';
     document.getElementById('rev-play').value = r.play || '';
@@ -2645,6 +2964,399 @@ ${r.script || '未填写'}
     }
   }
 
+  // ================= 运营驾驶舱 / 视频需求池 / 千川 / 达人 =================
+  const SHOP_LIST = ['洞庭山官方旗舰店', '洞庭山泉官方旗舰店', '蘇泉水饮旗舰店', '好水严选', '虎丘官方旗舰店'];
+
+  function fmtMoney(n) {
+    n = Number(n) || 0;
+    if (n >= 10000) return '¥' + (n / 10000).toFixed(1) + '万';
+    return '¥' + n.toLocaleString('zh-CN');
+  }
+  function fmtNum(n) { n = Number(n) || 0; return n.toLocaleString('zh-CN'); }
+
+  function card(label, value, icon, color) {
+    return `<div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4">
+      <div class="flex items-center gap-2 text-slate-400 text-xs mb-2"><i class="fa-solid ${icon}"></i><span>${label}</span></div>
+      <p class="text-2xl font-bold ${color}">${value}</p>
+    </div>`;
+  }
+
+  // ---- 店铺驾驶舱 ----
+  function renderCockpit() {
+    if (!appData.shops) appData.shops = [];
+    if (!appData.productRank) appData.productRank = [];
+    const shops = appData.shops;
+    const totalGmv = shops.reduce((s, x) => s + (Number(x.gmv) || 0), 0);
+    const totalTarget = shops.reduce((s, x) => s + (Number(x.target) || 0), 0);
+    const totalSpend = shops.reduce((s, x) => s + (Number(x.spend) || 0), 0);
+    const totalOrders = shops.reduce((s, x) => s + (Number(x.orders) || 0), 0);
+    const completion = totalTarget ? Math.round(totalGmv / totalTarget * 100) : 0;
+    const roi = totalSpend ? (totalGmv / totalSpend) : 0;
+
+    document.getElementById('cockpit-total').innerHTML = `
+      ${card('总 GMV', fmtMoney(totalGmv), 'fa-yen-sign', 'text-brand-600')}
+      ${card('目标完成率', completion + '%', 'fa-bullseye', completion >= 60 ? 'text-emerald-600' : 'text-amber-600')}
+      ${card('推广消耗', fmtMoney(totalSpend), 'fa-fire', 'text-orange-500')}
+      ${card('整体 ROI', roi ? roi.toFixed(2) : '—', 'fa-chart-line', roi >= 2 ? 'text-emerald-600' : 'text-red-500')}
+    `;
+
+    document.getElementById('cockpit-shops').innerHTML = shops.map(s => {
+      const comp = s.target ? Math.round((s.gmv || 0) / s.target * 100) : 0;
+      const r = s.spend ? ((s.gmv || 0) / s.spend) : 0;
+      const roiColor = r >= 2 ? 'text-emerald-600' : (r > 0 ? 'text-red-500' : 'text-slate-400');
+      return `
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4">
+        <div class="flex items-center justify-between mb-2">
+          <h5 class="font-semibold text-slate-800 text-sm truncate">${s.name}</h5>
+          <button onclick="editStore('${s.id}')" class="text-xs text-slate-400 hover:text-brand-600"><i class="fa-solid fa-pen"></i></button>
+        </div>
+        <div class="flex items-end justify-between mb-1">
+          <span class="text-2xl font-bold text-slate-800">${fmtMoney(s.gmv || 0)}</span>
+          <span class="text-xs text-slate-400">目标 ${fmtMoney(s.target || 0)}</span>
+        </div>
+        <div class="w-full bg-slate-100 rounded-full h-2 mb-3">
+          <div class="h-2 rounded-full ${comp >= 60 ? 'bg-brand-500' : 'bg-amber-400'}" style="width:${Math.min(comp, 100)}%"></div>
+        </div>
+        <div class="grid grid-cols-3 gap-2 text-center text-xs">
+          <div><p class="text-slate-400">完成率</p><p class="font-semibold ${comp >= 60 ? 'text-emerald-600' : 'text-amber-600'}">${comp}%</p></div>
+          <div><p class="text-slate-400">消耗</p><p class="font-semibold text-orange-500">${fmtMoney(s.spend || 0)}</p></div>
+          <div><p class="text-slate-400">ROI</p><p class="font-semibold ${roiColor}">${r ? r.toFixed(2) : '—'}</p></div>
+        </div>
+        <p class="text-xs text-slate-400 mt-2">订单 ${fmtNum(s.orders || 0)} 笔</p>
+      </div>`;
+    }).join('');
+
+    renderRank();
+    renderAlerts();
+  }
+
+  function renderRank() {
+    const rows = (appData.productRank || []).slice().sort((a, b) => (Number(b.deals) || 0) - (Number(a.deals) || 0));
+    const tb = document.getElementById('cockpit-rank');
+    if (rows.length === 0) { tb.innerHTML = '<tr><td colspan="5" class="px-2 py-6 text-center text-slate-300 text-xs">暂无排名，点「加一行」录入</td></tr>'; return; }
+    tb.innerHTML = rows.map((r, i) => `
+      <tr class="border-t border-slate-100">
+        <td class="px-2 py-2 text-xs">${escapeHtml(r.shop || '')}</td>
+        <td class="px-2 py-2 text-xs">${escapeHtml(r.name || '')}</td>
+        <td class="px-2 py-2 text-xs text-right">${fmtNum(r.sales || 0)}</td>
+        <td class="px-2 py-2 text-xs text-right font-semibold text-brand-700">${fmtMoney(r.deals || 0)}</td>
+        <td class="px-2 py-2 text-right"><button onclick="delRankRow(${i})" class="text-slate-300 hover:text-red-500"><i class="fa-solid fa-xmark"></i></button></td>
+      </tr>`).join('');
+  }
+  function addRankRow() { if (!appData.productRank) appData.productRank = []; appData.productRank.push({ shop: SHOP_LIST[0], name: '', sales: 0, deals: 0 }); saveData(appData); renderRank(); }
+  function delRankRow(i) { appData.productRank.splice(i, 1); saveData(appData); renderRank(); }
+
+  function renderAlerts() {
+    const alerts = [];
+    (appData.shops || []).forEach(s => {
+      const comp = s.target ? (s.gmv || 0) / s.target * 100 : 0;
+      const r = s.spend ? (s.gmv || 0) / s.spend : 0;
+      if (s.target && comp < 50) alerts.push({ lv: 'warn', t: `${s.name} 目标完成率仅 ${Math.round(comp)}%，低于 50%` });
+      if (s.spend && r > 0 && r < 2) alerts.push({ lv: 'danger', t: `${s.name} ROI ${r.toFixed(2)} 偏低（<2），推广效率待优化` });
+      if (s.spend && (s.gmv || 0) < s.spend) alerts.push({ lv: 'danger', t: `${s.name} 消耗 ${fmtMoney(s.spend)} 已超过 GMV，亏损风险` });
+    });
+    (appData.qianchuan || []).forEach(q => {
+      const r = q.spend ? (q.deals || 0) / q.spend : 0;
+      if (q.spend && r > 0 && r < 2) alerts.push({ lv: 'warn', t: `千川「${q.name}」ROI ${r.toFixed(2)} < 2` });
+    });
+    (appData.videoRequests || []).forEach(v => {
+      if (v.status && v.status !== '已发布' && v.status !== '废弃' && v.due) {
+        const d = new Date(v.due); const today = new Date(); today.setHours(0, 0, 0, 0);
+        const diff = Math.round((d - today) / 86400000);
+        if (diff < 0) alerts.push({ lv: 'danger', t: `视频「${v.title}」已逾期（截止 ${v.due}）` });
+        else if (diff <= 2) alerts.push({ lv: 'warn', t: `视频「${v.title}」${diff === 0 ? '今天' : diff + '天后'}截止` });
+      }
+    });
+    const box = document.getElementById('cockpit-alerts');
+    if (alerts.length === 0) { box.innerHTML = '<div class="text-sm text-emerald-600 bg-emerald-50 rounded-lg p-3"><i class="fa-solid fa-circle-check mr-1"></i>暂无异常，各项指标正常</div>'; return; }
+    const colorMap = { warn: 'amber', danger: 'red' };
+    box.innerHTML = alerts.map(a => `<div class="text-sm text-${colorMap[a.lv]}-700 bg-${colorMap[a.lv]}-50 rounded-lg p-3 flex items-start gap-2"><i class="fa-solid fa-circle-exclamation mt-0.5"></i><span>${escapeHtml(a.t)}</span></div>`).join('');
+  }
+
+  // ---- 店铺录入弹窗 ----
+  function editStore() {
+    const form = document.getElementById('store-form');
+    const shops = appData.shops || [];
+    form.innerHTML = shops.map(s => `
+      <div class="border border-slate-100 rounded-xl p-3">
+        <p class="text-sm font-medium text-slate-700 mb-2">${s.name}</p>
+        <div class="grid grid-cols-2 gap-2">
+          <div><label class="text-xs text-slate-400">GMV</label><input data-f="gmv" data-id="${s.id}" value="${s.gmv || 0}" type="number" class="w-full px-2 py-1.5 border border-slate-200 rounded-lg text-sm"></div>
+          <div><label class="text-xs text-slate-400">目标</label><input data-f="target" data-id="${s.id}" value="${s.target || 0}" type="number" class="w-full px-2 py-1.5 border border-slate-200 rounded-lg text-sm"></div>
+          <div><label class="text-xs text-slate-400">推广消耗</label><input data-f="spend" data-id="${s.id}" value="${s.spend || 0}" type="number" class="w-full px-2 py-1.5 border border-slate-200 rounded-lg text-sm"></div>
+          <div><label class="text-xs text-slate-400">订单数</label><input data-f="orders" data-id="${s.id}" value="${s.orders || 0}" type="number" class="w-full px-2 py-1.5 border border-slate-200 rounded-lg text-sm"></div>
+        </div>
+      </div>`).join('');
+    document.getElementById('store-modal').classList.remove('hidden');
+  }
+  function closeStoreModal() { document.getElementById('store-modal').classList.add('hidden'); }
+  function saveStores() {
+    document.querySelectorAll('#store-form input[data-id]').forEach(inp => {
+      const s = appData.shops.find(x => x.id === inp.dataset.id);
+      if (s) s[inp.dataset.f] = Number(inp.value) || 0;
+    });
+    saveData(appData); closeStoreModal(); renderCockpit();
+  }
+
+  function fillShopSelect(selId) {
+    const sel = document.getElementById(selId);
+    if (sel.options.length === 0) sel.innerHTML = SHOP_LIST.map(s => `<option>${s}</option>`).join('');
+  }
+
+  // ---- 视频需求池 ----
+  function renderVideoPool() {
+    fillShopSelect('vp-shop');
+    const list = appData.videoRequests || [];
+    const statusColors = { '待写脚本': 'slate', '脚本中': 'blue', '待拍摄': 'indigo', '拍摄中': 'violet', '剪辑中': 'amber', '已发布': 'emerald', '废弃': 'gray' };
+    const prioColors = { '高': 'red', '中': 'amber', '低': 'slate' };
+    document.getElementById('vp-summary').innerHTML = ['待写脚本', '脚本中', '待拍摄', '拍摄中', '剪辑中', '已发布'].map(st => {
+      const n = list.filter(v => v.status === st).length;
+      return `<div class="bg-white rounded-xl border border-slate-200 p-3"><p class="text-xs text-slate-400">${st}</p><p class="text-xl font-bold text-slate-800">${n}</p></div>`;
+    }).join('');
+    const tb = document.getElementById('vp-table');
+    if (list.length === 0) { tb.innerHTML = '<tr><td colspan="9" class="px-3 py-10 text-center text-slate-300 text-sm">还没有需求，点「新增需求」开始</td></tr>'; }
+    else {
+      tb.innerHTML = list.map((v, i) => `
+        <tr class="hover:bg-slate-50">
+          <td class="px-3 py-2 font-medium text-slate-800">${escapeHtml(v.title || '')}</td>
+          <td class="px-3 py-2 text-xs text-slate-500">${escapeHtml(v.shop || '')}</td>
+          <td class="px-3 py-2 text-xs">${escapeHtml(v.type || '')}</td>
+          <td class="px-3 py-2"><span class="text-xs px-2 py-0.5 rounded-full bg-${prioColors[v.priority] || 'slate'}-100 text-${prioColors[v.priority] || 'slate'}-700">${v.priority || '中'}</span></td>
+          <td class="px-3 py-2"><span class="text-xs px-2 py-0.5 rounded-full bg-${statusColors[v.status] || 'slate'}-100 text-${statusColors[v.status] || 'slate'}-700">${v.status || '待写脚本'}</span></td>
+          <td class="px-3 py-2 text-xs text-slate-500">${escapeHtml(v.owner || '—')}</td>
+          <td class="px-3 py-2 text-xs text-slate-500">${v.due || '—'}</td>
+          <td class="px-3 py-2 text-xs">${v.material ? (v.material === '已备' ? '<span class="text-emerald-600">已备</span>' : v.material === '采集中' ? '<span class="text-amber-600">采集中</span>' : '<span class="text-slate-300">无</span>') : '—'}</td>
+          <td class="px-3 py-2">
+            <button onclick="openVpModal(${i})" class="text-slate-400 hover:text-brand-600 mr-2"><i class="fa-solid fa-pen"></i></button>
+            <button onclick="delVp(${i})" class="text-slate-300 hover:text-red-500"><i class="fa-solid fa-trash"></i></button>
+          </td>
+        </tr>`).join('');
+    }
+    const schedule = list.filter(v => v.status && v.status !== '已发布' && v.status !== '废弃').slice().sort((a, b) => (a.due || '9999').localeCompare(b.due || '9999'));
+    const sc = document.getElementById('vp-schedule');
+    if (schedule.length === 0) { sc.innerHTML = '<div class="text-sm text-slate-300 bg-white rounded-xl border border-slate-200 p-4 text-center">暂无进行中的排期</div>'; }
+    else {
+      sc.innerHTML = schedule.map(v => `
+        <div class="flex items-center gap-3 bg-white rounded-xl border border-slate-200 p-3">
+          <div class="text-center w-16 flex-shrink-0"><p class="text-xs text-slate-400">${v.due ? v.due.slice(5) : '待定'}</p></div>
+          <div class="flex-1 min-w-0"><p class="text-sm font-medium text-slate-800 truncate">${escapeHtml(v.title || '')}</p><p class="text-xs text-slate-400">${escapeHtml(v.shop || '')} · ${v.owner || '未分配'}</p></div>
+          <span class="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">${v.status}</span>
+        </div>`).join('');
+    }
+  }
+  function openVpModal(i) {
+    fillShopSelect('vp-shop');
+    if (i === undefined) {
+      document.getElementById('vp-modal-title').textContent = '新增视频需求';
+      document.getElementById('vp-id').value = '';
+      document.getElementById('vp-title').value = '';
+      document.getElementById('vp-shop').selectedIndex = 0;
+      document.getElementById('vp-type').selectedIndex = 0;
+      document.getElementById('vp-priority').selectedIndex = 1;
+      document.getElementById('vp-status').selectedIndex = 0;
+      document.getElementById('vp-owner').value = '';
+      document.getElementById('vp-due').value = '';
+      document.getElementById('vp-material').selectedIndex = 0;
+      document.getElementById('vp-note').value = '';
+    } else {
+      const v = appData.videoRequests[i];
+      document.getElementById('vp-modal-title').textContent = '编辑视频需求';
+      document.getElementById('vp-id').value = i;
+      document.getElementById('vp-title').value = v.title || '';
+      document.getElementById('vp-shop').value = v.shop || SHOP_LIST[0];
+      document.getElementById('vp-type').value = v.type || '种草';
+      document.getElementById('vp-priority').value = v.priority || '中';
+      document.getElementById('vp-status').value = v.status || '待写脚本';
+      document.getElementById('vp-owner').value = v.owner || '';
+      document.getElementById('vp-due').value = v.due || '';
+      document.getElementById('vp-material').value = v.material || '无';
+      document.getElementById('vp-note').value = v.note || '';
+    }
+    document.getElementById('vp-modal').classList.remove('hidden');
+  }
+  function closeVpModal() { document.getElementById('vp-modal').classList.add('hidden'); }
+  function saveVp() {
+    const i = document.getElementById('vp-id').value;
+    const data = {
+      title: document.getElementById('vp-title').value.trim(),
+      shop: document.getElementById('vp-shop').value,
+      type: document.getElementById('vp-type').value,
+      priority: document.getElementById('vp-priority').value,
+      status: document.getElementById('vp-status').value,
+      owner: document.getElementById('vp-owner').value.trim(),
+      due: document.getElementById('vp-due').value,
+      material: document.getElementById('vp-material').value,
+      note: document.getElementById('vp-note').value.trim()
+    };
+    if (!appData.videoRequests) appData.videoRequests = [];
+    if (i === '') appData.videoRequests.push(data); else appData.videoRequests[i] = data;
+    saveData(appData); closeVpModal(); renderVideoPool();
+  }
+  function delVp(i) { if (confirm('删除该需求？')) { appData.videoRequests.splice(i, 1); saveData(appData); renderVideoPool(); } }
+
+  // ---- 千川投放 ----
+  function renderQianchuan() {
+    fillShopSelect('qc-shop');
+    const list = appData.qianchuan || [];
+    const totalBudget = list.reduce((s, x) => s + (Number(x.budget) || 0), 0);
+    const totalSpend = list.reduce((s, x) => s + (Number(x.spend) || 0), 0);
+    const totalDeals = list.reduce((s, x) => s + (Number(x.deals) || 0), 0);
+    const roi = totalSpend ? totalDeals / totalSpend : 0;
+    document.getElementById('qc-summary').innerHTML = `
+      ${card('计划数', list.length, 'fa-list', 'text-brand-600')}
+      ${card('总预算', fmtMoney(totalBudget), 'fa-wallet', 'text-indigo-500')}
+      ${card('总消耗', fmtMoney(totalSpend), 'fa-fire', 'text-orange-500')}
+      ${card('总成交 / ROI', fmtMoney(totalDeals) + ' · ' + (roi ? roi.toFixed(2) : '—'), 'fa-chart-line', roi >= 2 ? 'text-emerald-600' : 'text-red-500')}
+    `;
+    const tb = document.getElementById('qc-table');
+    const statusColors = { '投放中': 'emerald', '暂停': 'amber', '结束': 'slate' };
+    if (list.length === 0) { tb.innerHTML = '<tr><td colspan="10" class="px-3 py-10 text-center text-slate-300 text-sm">还没有计划，点「新增计划」</td></tr>'; }
+    else {
+      tb.innerHTML = list.map((q, i) => {
+        const r = q.spend ? (q.deals || 0) / q.spend : 0;
+        return `<tr class="hover:bg-slate-50">
+          <td class="px-3 py-2 font-medium text-slate-800">${escapeHtml(q.name || '')}</td>
+          <td class="px-3 py-2 text-xs text-slate-500">${escapeHtml(q.shop || '')}</td>
+          <td class="px-3 py-2 text-xs">${escapeHtml(q.type || '')}</td>
+          <td class="px-3 py-2 text-xs">${fmtMoney(q.budget || 0)}</td>
+          <td class="px-3 py-2 text-xs">${fmtMoney(q.spend || 0)}</td>
+          <td class="px-3 py-2 text-xs">${fmtMoney(q.deals || 0)}</td>
+          <td class="px-3 py-2"><span class="text-xs font-semibold ${r >= 2 ? 'text-emerald-600' : 'text-red-500'}">${r ? r.toFixed(2) : '—'}</span></td>
+          <td class="px-3 py-2 text-xs text-slate-500">${escapeHtml(q.material || '—')}</td>
+          <td class="px-3 py-2"><span class="text-xs px-2 py-0.5 rounded-full bg-${statusColors[q.status] || 'slate'}-100 text-${statusColors[q.status] || 'slate'}-700">${q.status || '投放中'}</span></td>
+          <td class="px-3 py-2">
+            <button onclick="openQcModal(${i})" class="text-slate-400 hover:text-brand-600 mr-2"><i class="fa-solid fa-pen"></i></button>
+            <button onclick="delQc(${i})" class="text-slate-300 hover:text-red-500"><i class="fa-solid fa-trash"></i></button>
+          </td>
+        </tr>`;
+      }).join('');
+    }
+  }
+  function openQcModal(i) {
+    fillShopSelect('qc-shop');
+    if (i === undefined) {
+      document.getElementById('qc-modal-title').textContent = '新增千川计划';
+      document.getElementById('qc-id').value = '';
+      document.getElementById('qc-name').value = '';
+      document.getElementById('qc-shop').selectedIndex = 0;
+      document.getElementById('qc-type').selectedIndex = 0;
+      document.getElementById('qc-budget').value = '';
+      document.getElementById('qc-spend').value = '';
+      document.getElementById('qc-deals').value = '';
+      document.getElementById('qc-material').value = '';
+      document.getElementById('qc-status').selectedIndex = 0;
+    } else {
+      const q = appData.qianchuan[i];
+      document.getElementById('qc-modal-title').textContent = '编辑千川计划';
+      document.getElementById('qc-id').value = i;
+      document.getElementById('qc-name').value = q.name || '';
+      document.getElementById('qc-shop').value = q.shop || SHOP_LIST[0];
+      document.getElementById('qc-type').value = q.type || '短视频引流';
+      document.getElementById('qc-budget').value = q.budget || '';
+      document.getElementById('qc-spend').value = q.spend || '';
+      document.getElementById('qc-deals').value = q.deals || '';
+      document.getElementById('qc-material').value = q.material || '';
+      document.getElementById('qc-status').value = q.status || '投放中';
+    }
+    document.getElementById('qc-modal').classList.remove('hidden');
+  }
+  function closeQcModal() { document.getElementById('qc-modal').classList.add('hidden'); }
+  function saveQc() {
+    const i = document.getElementById('qc-id').value;
+    const data = {
+      name: document.getElementById('qc-name').value.trim(),
+      shop: document.getElementById('qc-shop').value,
+      type: document.getElementById('qc-type').value,
+      budget: Number(document.getElementById('qc-budget').value) || 0,
+      spend: Number(document.getElementById('qc-spend').value) || 0,
+      deals: Number(document.getElementById('qc-deals').value) || 0,
+      material: document.getElementById('qc-material').value.trim(),
+      status: document.getElementById('qc-status').value
+    };
+    if (!appData.qianchuan) appData.qianchuan = [];
+    if (i === '') appData.qianchuan.push(data); else appData.qianchuan[i] = data;
+    saveData(appData); closeQcModal(); renderQianchuan(); renderAlerts();
+  }
+  function delQc(i) { if (confirm('删除该计划？')) { appData.qianchuan.splice(i, 1); saveData(appData); renderQianchuan(); renderAlerts(); } }
+
+  // ---- 达人合作 ----
+  function renderCreators() {
+    const list = appData.creators || [];
+    const coop = list.filter(c => c.status === '合作中').length;
+    const totalDeals = list.reduce((s, x) => s + (Number(x.deals) || 0), 0);
+    const avgComm = list.length ? (list.reduce((s, x) => s + (Number(x.commission) || 0), 0) / list.length).toFixed(1) : 0;
+    document.getElementById('cr-summary').innerHTML = `
+      ${card('达人总数', list.length, 'fa-users', 'text-brand-600')}
+      ${card('合作中', coop, 'fa-handshake', 'text-emerald-600')}
+      ${card('总成交', fmtMoney(totalDeals), 'fa-yen-sign', 'text-orange-500')}
+      ${card('平均佣金', avgComm + '%', 'fa-percent', 'text-indigo-500')}
+    `;
+    const tb = document.getElementById('cr-table');
+    const statusColors = { '沟通中': 'slate', '已寄样': 'blue', '合作中': 'emerald', '已结束': 'gray', '终止': 'red' };
+    if (list.length === 0) { tb.innerHTML = '<tr><td colspan="8" class="px-3 py-10 text-center text-slate-300 text-sm">还没有达人，点「新增达人」</td></tr>'; }
+    else {
+      tb.innerHTML = list.map((c, i) => `
+        <tr class="hover:bg-slate-50">
+          <td class="px-3 py-2 font-medium text-slate-800">${escapeHtml(c.name || '')}</td>
+          <td class="px-3 py-2 text-xs">${escapeHtml(c.platform || '')}</td>
+          <td class="px-3 py-2 text-xs text-slate-500">${escapeHtml(c.region || '—')}</td>
+          <td class="px-3 py-2 text-xs">${c.fans ? fmtNum(c.fans) : '—'}</td>
+          <td class="px-3 py-2 text-xs">${c.commission ? c.commission + '%' : '—'}</td>
+          <td class="px-3 py-2"><span class="text-xs px-2 py-0.5 rounded-full bg-${statusColors[c.status] || 'slate'}-100 text-${statusColors[c.status] || 'slate'}-700">${c.status || '沟通中'}</span></td>
+          <td class="px-3 py-2 text-xs">${fmtMoney(c.deals || 0)}</td>
+          <td class="px-3 py-2">
+            <button onclick="openCrModal(${i})" class="text-slate-400 hover:text-brand-600 mr-2"><i class="fa-solid fa-pen"></i></button>
+            <button onclick="delCr(${i})" class="text-slate-300 hover:text-red-500"><i class="fa-solid fa-trash"></i></button>
+          </td>
+        </tr>`).join('');
+    }
+  }
+  function openCrModal(i) {
+    if (i === undefined) {
+      document.getElementById('cr-modal-title').textContent = '新增达人';
+      document.getElementById('cr-id').value = '';
+      document.getElementById('cr-name').value = '';
+      document.getElementById('cr-platform').selectedIndex = 0;
+      document.getElementById('cr-region').value = '';
+      document.getElementById('cr-fans').value = '';
+      document.getElementById('cr-commission').value = '';
+      document.getElementById('cr-status').selectedIndex = 0;
+      document.getElementById('cr-deals').value = '';
+      document.getElementById('cr-note').value = '';
+    } else {
+      const c = appData.creators[i];
+      document.getElementById('cr-modal-title').textContent = '编辑达人';
+      document.getElementById('cr-id').value = i;
+      document.getElementById('cr-name').value = c.name || '';
+      document.getElementById('cr-platform').value = c.platform || '抖音';
+      document.getElementById('cr-region').value = c.region || '';
+      document.getElementById('cr-fans').value = c.fans || '';
+      document.getElementById('cr-commission').value = c.commission || '';
+      document.getElementById('cr-status').value = c.status || '沟通中';
+      document.getElementById('cr-deals').value = c.deals || '';
+      document.getElementById('cr-note').value = c.note || '';
+    }
+    document.getElementById('cr-modal').classList.remove('hidden');
+  }
+  function closeCrModal() { document.getElementById('cr-modal').classList.add('hidden'); }
+  function saveCr() {
+    const i = document.getElementById('cr-id').value;
+    const data = {
+      name: document.getElementById('cr-name').value.trim(),
+      platform: document.getElementById('cr-platform').value,
+      region: document.getElementById('cr-region').value.trim(),
+      fans: Number(document.getElementById('cr-fans').value) || 0,
+      commission: Number(document.getElementById('cr-commission').value) || 0,
+      status: document.getElementById('cr-status').value,
+      deals: Number(document.getElementById('cr-deals').value) || 0,
+      note: document.getElementById('cr-note').value.trim()
+    };
+    if (!appData.creators) appData.creators = [];
+    if (i === '') appData.creators.push(data); else appData.creators[i] = data;
+    saveData(appData); closeCrModal(); renderCreators();
+  }
+  function delCr(i) { if (confirm('删除该达人？')) { appData.creators.splice(i, 1); saveData(appData); renderCreators(); } }
+
   // ================= 初始化 =================
   document.addEventListener('DOMContentLoaded', async () => {
     await tryLoadFromHash();
@@ -2666,6 +3378,7 @@ ${r.script || '未填写'}
     ];
     document.getElementById('daily-tip').textContent = tips[new Date().getDay() % tips.length];
     updateAiStatusDot();
+    switchTab('cockpit');
   });
 </script>
 
