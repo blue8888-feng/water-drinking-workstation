@@ -808,11 +808,32 @@
                 <th class="px-3 py-3 font-medium">计划</th><th class="px-3 py-3 font-medium">店铺</th>
                 <th class="px-3 py-3 font-medium">类型</th><th class="px-3 py-3 font-medium">预算</th>
                 <th class="px-3 py-3 font-medium">消耗</th><th class="px-3 py-3 font-medium">成交</th>
-                <th class="px-3 py-3 font-medium">ROI</th><th class="px-3 py-3 font-medium">素材</th>
+                <th class="px-3 py-3 font-medium">ROI</th><th class="px-3 py-3 font-medium">视频素材</th>
                 <th class="px-3 py-3 font-medium">状态</th><th class="px-3 py-3 font-medium w-24">操作</th>
               </tr></thead>
               <tbody id="qc-table" class="divide-y divide-slate-100"></tbody>
             </table>
+          </div>
+        </div>
+
+        <!-- 素材效果复盘 -->
+        <div class="mt-6">
+          <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+            <h4 class="text-sm font-semibold text-slate-700 flex items-center gap-2"><i class="fa-solid fa-chart-pie text-brand-600"></i>素材效果复盘</h4>
+            <span class="text-xs text-slate-400">按「关联视频素材」聚合所有投放计划的表现</span>
+          </div>
+          <div id="qc-material-insight" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4"></div>
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead><tr class="bg-slate-50 text-left text-xs text-slate-500 uppercase">
+                  <th class="px-3 py-3 font-medium">视频素材</th><th class="px-3 py-3 font-medium">关联商品</th>
+                  <th class="px-3 py-3 font-medium">计划数</th><th class="px-3 py-3 font-medium">消耗</th>
+                  <th class="px-3 py-3 font-medium">成交</th><th class="px-3 py-3 font-medium">ROI</th><th class="px-3 py-3 font-medium">素材状态</th>
+                </tr></thead>
+                <tbody id="qc-material-table" class="divide-y divide-slate-100"></tbody>
+              </table>
+            </div>
           </div>
         </div>
       </section>
@@ -909,7 +930,9 @@
               <div><label class="text-xs text-slate-500">消耗</label><input id="qc-spend" type="number" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"></div>
               <div><label class="text-xs text-slate-500">成交</label><input id="qc-deals" type="number" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"></div>
             </div>
-            <div><label class="text-xs text-slate-500">素材</label><input id="qc-material" placeholder="素材名 / 视频ID" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"></div>
+            <div><label class="text-xs text-slate-500">关联视频素材 <span class="text-slate-400 font-normal">（绑定 SPV 视频，自动带出商品）</span></label><select id="qc-video" onchange="qcVideoChange()" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"></select></div>
+            <div><label class="text-xs text-slate-500">关联商品 <span class="text-slate-400 font-normal">（选视频后自动带出，可改）</span></label><select id="qc-product" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"></select></div>
+            <div><label class="text-xs text-slate-500">素材备注 <span class="text-slate-400 font-normal">（选填，如版本号）</span></label><input id="qc-material" placeholder="素材名 / 版本号" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"></div>
             <div><label class="text-xs text-slate-500">状态</label><select id="qc-status" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm">
               <option>投放中</option><option>暂停</option><option>结束</option></select></div>
           </div>
@@ -2269,7 +2292,7 @@ function copyOriginal() {
     const psel = document.getElementById('rev-plan-ref');
     if (!vsel || !psel) return;
     vsel.innerHTML = '<option value="">不关联</option>' + (appData.videoRequests || []).map(v => `<option value="${escapeAttr(v.title || '')}">${escapeHtml(v.title || '未命名需求')}</option>`).join('');
-    psel.innerHTML = '<option value="">不关联</option>' + (appData.qianchuan || []).map(q => `<option value="${escapeAttr(q.name || '')}">${escapeHtml(q.name || '未命名计划')}</option>`).join('');
+    psel.innerHTML = '<option value="">不关联</option>' + getQcList().map(q => `<option value="${escapeAttr(q.planName || q.name || '')}">${escapeHtml(q.planName || q.name || '未命名计划')}</option>`).join('');
   }
 
   let currentReviewReport = null;
@@ -3259,9 +3282,9 @@ ${r.script || '未填写'}
       if (s.spend && r > 0 && r < 2) alerts.push({ lv: 'danger', t: `${s.name} ROI ${r.toFixed(2)} 偏低（<2），推广效率待优化` });
       if (s.spend && (s.gmv || 0) < s.spend) alerts.push({ lv: 'danger', t: `${s.name} 消耗 ${fmtMoney(s.spend)} 已超过 GMV，亏损风险` });
     });
-    (appData.qianchuan || []).forEach(q => {
+    getQcList().forEach(q => {
       const r = q.spend ? (q.deals || 0) / q.spend : 0;
-      if (q.spend && r > 0 && r < 2) alerts.push({ lv: 'warn', t: `千川「${q.name}」ROI ${r.toFixed(2)} < 2` });
+      if (q.spend && r > 0 && r < 2) alerts.push({ lv: 'warn', t: `千川「${q.planName || q.name}」ROI ${r.toFixed(2)} < 2` });
     });
     (appData.videoRequests || []).forEach(v => {
       if (v.status && v.status !== '已发布' && v.status !== '废弃' && v.due) {
@@ -3707,9 +3730,16 @@ ${r.script || '未填写'}
   }
 
   // ---- 千川投放 ----
+  // 统一读取千川计划：优先 v2（统一ID体系），缺省回退 legacy，保证旧数据兼容
+  function getQcList() {
+    if (appData.v2 && Array.isArray(appData.v2.qianchuan)) return appData.v2.qianchuan;
+    return appData.qianchuan || [];
+  }
+
   function renderQianchuan() {
     fillShopSelect('qc-shop');
-    const list = appData.qianchuan || [];
+    const list = getQcList();
+    const videos = (appData.v2 && appData.v2.videos) || [];
     const totalBudget = list.reduce((s, x) => s + (Number(x.budget) || 0), 0);
     const totalSpend = list.reduce((s, x) => s + (Number(x.spend) || 0), 0);
     const totalDeals = list.reduce((s, x) => s + (Number(x.deals) || 0), 0);
@@ -3724,29 +3754,68 @@ ${r.script || '未填写'}
     const statusColors = { '投放中': 'emerald', '暂停': 'amber', '结束': 'slate' };
     if (list.length === 0) { tb.innerHTML = '<tr><td colspan="10" class="px-3 py-10 text-center text-slate-300 text-sm">还没有计划，点「新增计划」</td></tr>'; }
     else {
-      tb.innerHTML = list.map((q, i) => {
+      tb.innerHTML = list.map(q => {
         const r = q.spend ? (q.deals || 0) / q.spend : 0;
+        const video = videos.find(v => v.id === q.videoId);
+        const prod = q.productId ? getSpProduct(q.productId) : null;
+        const videoBadge = video
+          ? `<span class="inline-block text-xs px-2 py-0.5 rounded-full bg-sky-100 text-sky-700">${escapeHtml(video.name)}</span>`
+          : (q.material ? `<span class="text-xs text-slate-400">${escapeHtml(q.material)}</span>` : '<span class="text-slate-300">—</span>');
+        const prodBadge = prod ? `<div class="text-[11px] text-slate-400 mt-0.5">${escapeHtml(prod.name)}（${escapeHtml(prod.brand)}）</div>` : '';
         return `<tr class="hover:bg-slate-50">
-          <td class="px-3 py-2 font-medium text-slate-800">${escapeHtml(q.name || '')}</td>
+          <td class="px-3 py-2">
+            <div class="font-medium text-slate-800">${escapeHtml(q.planName || q.name || '')}</div>
+            <div class="text-[11px] text-slate-400 mt-0.5">${escapeHtml(q.id || '')}</div>
+          </td>
           <td class="px-3 py-2 text-xs text-slate-500">${escapeHtml(q.shop || '')}</td>
           <td class="px-3 py-2 text-xs">${escapeHtml(q.type || '')}</td>
           <td class="px-3 py-2 text-xs">${fmtMoney(q.budget || 0)}</td>
           <td class="px-3 py-2 text-xs">${fmtMoney(q.spend || 0)}</td>
           <td class="px-3 py-2 text-xs">${fmtMoney(q.deals || 0)}</td>
           <td class="px-3 py-2"><span class="text-xs font-semibold ${r >= 2 ? 'text-emerald-600' : 'text-red-500'}">${r ? r.toFixed(2) : '—'}</span></td>
-          <td class="px-3 py-2 text-xs text-slate-500">${escapeHtml(q.material || '—')}</td>
+          <td class="px-3 py-2">${videoBadge}${prodBadge}</td>
           <td class="px-3 py-2"><span class="text-xs px-2 py-0.5 rounded-full bg-${statusColors[q.status] || 'slate'}-100 text-${statusColors[q.status] || 'slate'}-700">${q.status || '投放中'}</span></td>
           <td class="px-3 py-2">
-            <button onclick="openQcModal(${i})" class="text-slate-400 hover:text-brand-600 mr-2"><i class="fa-solid fa-pen"></i></button>
-            <button onclick="delQc(${i})" class="text-slate-300 hover:text-red-500"><i class="fa-solid fa-trash"></i></button>
+            <button onclick="openQcModal('${q.id || ''}')" class="text-slate-400 hover:text-brand-600 mr-2"><i class="fa-solid fa-pen"></i></button>
+            <button onclick="delQc('${q.id || ''}')" class="text-slate-300 hover:text-red-500"><i class="fa-solid fa-trash"></i></button>
           </td>
         </tr>`;
       }).join('');
     }
+    renderQcMaterialReview();
   }
-  function openQcModal(i) {
+
+  function populateQcVideoSelect() {
+    const sel = document.getElementById('qc-video');
+    if (!sel) return;
+    const videos = (appData.v2 && appData.v2.videos) || [];
+    sel.innerHTML = '<option value="">不绑定视频素材</option>' + videos.map(v =>
+      `<option value="${v.id}">${v.id} · ${escapeHtml(v.name)}（${escapeHtml(v.shop || '')}）</option>`
+    ).join('');
+  }
+  function populateQcProductSelect() {
+    const sel = document.getElementById('qc-product');
+    if (!sel) return;
+    const prods = (appData.v2 && appData.v2.products) || [];
+    sel.innerHTML = '<option value="">不关联商品</option>' + prods.map(p =>
+      `<option value="${p.id}">${p.id} · ${escapeHtml(p.name)}（${escapeHtml(p.brand)}）</option>`
+    ).join('');
+  }
+  function qcVideoChange() {
+    const vid = document.getElementById('qc-video').value;
+    const video = (appData.v2 && appData.v2.videos || []).find(v => v.id === vid);
+    if (video && video.productId) document.getElementById('qc-product').value = video.productId;
+    if (video && video.shop) {
+      const sel = document.getElementById('qc-shop');
+      if ([...sel.options].some(o => o.value === video.shop)) sel.value = video.shop;
+    }
+  }
+
+  function openQcModal(id) {
     fillShopSelect('qc-shop');
-    if (i === undefined) {
+    populateQcVideoSelect();
+    populateQcProductSelect();
+    if (!id) {
       document.getElementById('qc-modal-title').textContent = '新增千川计划';
       document.getElementById('qc-id').value = '';
       document.getElementById('qc-name').value = '';
@@ -3755,18 +3824,23 @@ ${r.script || '未填写'}
       document.getElementById('qc-budget').value = '';
       document.getElementById('qc-spend').value = '';
       document.getElementById('qc-deals').value = '';
+      document.getElementById('qc-video').value = '';
+      document.getElementById('qc-product').value = '';
       document.getElementById('qc-material').value = '';
       document.getElementById('qc-status').selectedIndex = 0;
     } else {
-      const q = appData.qianchuan[i];
+      const q = (appData.v2.qianchuan || []).find(x => x.id === id);
+      if (!q) return;
       document.getElementById('qc-modal-title').textContent = '编辑千川计划';
-      document.getElementById('qc-id').value = i;
-      document.getElementById('qc-name').value = q.name || '';
+      document.getElementById('qc-id').value = id;
+      document.getElementById('qc-name').value = q.planName || q.name || '';
       document.getElementById('qc-shop').value = q.shop || SHOP_LIST[0];
       document.getElementById('qc-type').value = q.type || '短视频引流';
       document.getElementById('qc-budget').value = q.budget || '';
       document.getElementById('qc-spend').value = q.spend || '';
       document.getElementById('qc-deals').value = q.deals || '';
+      document.getElementById('qc-video').value = q.videoId || '';
+      document.getElementById('qc-product').value = q.productId || '';
       document.getElementById('qc-material').value = q.material || '';
       document.getElementById('qc-status').value = q.status || '投放中';
     }
@@ -3774,22 +3848,88 @@ ${r.script || '未填写'}
   }
   function closeQcModal() { document.getElementById('qc-modal').classList.add('hidden'); }
   function saveQc() {
-    const i = document.getElementById('qc-id').value;
+    const id = document.getElementById('qc-id').value;
+    const m = ensureV2();
+    if (!m.qianchuan) m.qianchuan = [];
     const data = {
-      name: document.getElementById('qc-name').value.trim(),
+      id: id || v2NextId(m, 'QC'),
+      videoId: document.getElementById('qc-video').value,
+      productId: document.getElementById('qc-product').value,
+      planName: document.getElementById('qc-name').value.trim(),
       shop: document.getElementById('qc-shop').value,
       type: document.getElementById('qc-type').value,
       budget: Number(document.getElementById('qc-budget').value) || 0,
       spend: Number(document.getElementById('qc-spend').value) || 0,
       deals: Number(document.getElementById('qc-deals').value) || 0,
+      roi: 0,
       material: document.getElementById('qc-material').value.trim(),
       status: document.getElementById('qc-status').value
     };
-    if (!appData.qianchuan) appData.qianchuan = [];
-    if (i === '') appData.qianchuan.push(data); else appData.qianchuan[i] = data;
+    data.roi = data.spend ? +(data.deals / data.spend).toFixed(2) : 0;
+    const idx = m.qianchuan.findIndex(x => x.id === id);
+    if (idx >= 0) m.qianchuan[idx] = data; else m.qianchuan.push(data);
     saveData(appData); closeQcModal(); renderQianchuan(); renderAlerts();
   }
-  function delQc(i) { if (confirm('删除该计划？')) { appData.qianchuan.splice(i, 1); saveData(appData); renderQianchuan(); renderAlerts(); } }
+  function delQc(id) {
+    if (confirm('删除该计划？')) {
+      if (appData.v2 && appData.v2.qianchuan) appData.v2.qianchuan = appData.v2.qianchuan.filter(x => x.id !== id);
+      if (appData.qianchuan) appData.qianchuan = appData.qianchuan.filter(x => (x.__qcId || '') !== id);
+      saveData(appData); renderQianchuan(); renderAlerts();
+    }
+  }
+
+  function renderQcMaterialReview() {
+    const wrap = document.getElementById('qc-material-insight');
+    const tb = document.getElementById('qc-material-table');
+    if (!wrap || !tb) return;
+    const list = getQcList();
+    const videos = (appData.v2 && appData.v2.videos) || [];
+    const vColors = { '待制作': 'slate', '剪辑中': 'amber', '已发布': 'emerald', '测试中': 'sky', '放量': 'green', '淘汰': 'red' };
+    const groups = {};
+    list.forEach(q => {
+      if (!q.videoId) return;
+      if (!groups[q.videoId]) groups[q.videoId] = { spend: 0, deals: 0, plans: 0 };
+      groups[q.videoId].spend += Number(q.spend) || 0;
+      groups[q.videoId].deals += Number(q.deals) || 0;
+      groups[q.videoId].plans += 1;
+    });
+    const rows = Object.keys(groups).map(vid => {
+      const g = groups[vid];
+      const v = videos.find(x => x.id === vid) || {};
+      const prod = v.productId ? getSpProduct(v.productId) : null;
+      const roi = g.spend ? g.deals / g.spend : 0;
+      return { vid, name: v.name || vid, prod, spend: g.spend, deals: g.deals, plans: g.plans, roi, status: v.status || '' };
+    }).sort((a, b) => b.roi - a.roi);
+
+    const boundCount = rows.length;
+    const unbound = list.filter(q => !q.videoId).length;
+    const avgRoi = rows.length ? rows.reduce((s, r) => s + r.roi, 0) / rows.length : 0;
+    wrap.innerHTML = `
+      ${card('已绑定素材', boundCount, 'fa-clapperboard', 'text-sky-600')}
+      ${card('未绑定计划', unbound, 'fa-link-slash', 'text-slate-500')}
+      ${card('绑定素材平均ROI', rows.length ? avgRoi.toFixed(2) : '—', 'fa-chart-line', avgRoi >= 2 ? 'text-emerald-600' : 'text-red-500')}
+      ${card('素材计划总数', list.length, 'fa-list', 'text-brand-600')}
+    `;
+    if (rows.length === 0) {
+      tb.innerHTML = '<tr><td colspan="7" class="px-3 py-8 text-center text-slate-300 text-sm">还没有绑定视频素材的投放计划。在计划里「关联视频素材」后，这里会自动汇总素材的消耗 / 成交 / ROI。</td></tr>';
+      return;
+    }
+    tb.innerHTML = rows.map(r => {
+      const prodBadge = r.prod ? `${escapeHtml(r.prod.name)}（${escapeHtml(r.prod.brand)}）` : '—';
+      const statusBadge = r.status ? `<span class="text-xs px-2 py-0.5 rounded-full bg-${vColors[r.status] || 'slate'}-100 text-${vColors[r.status] || 'slate'}-700">${r.status}</span>` : '—';
+      const roiColor = r.roi >= 2 ? 'text-emerald-600' : 'text-red-500';
+      const roiTag = r.roi < 2 ? '<span class="ml-1 text-[10px] px-1 py-0.5 rounded bg-red-50 text-red-500">低效</span>' : '';
+      return `<tr class="hover:bg-slate-50">
+        <td class="px-3 py-2"><div class="font-medium text-slate-800">${escapeHtml(r.name)}</div><div class="text-[11px] text-slate-400 mt-0.5">${escapeHtml(r.vid)}</div></td>
+        <td class="px-3 py-2 text-xs">${prodBadge}</td>
+        <td class="px-3 py-2 text-xs text-slate-500">${r.plans}</td>
+        <td class="px-3 py-2 text-xs">${fmtMoney(r.spend)}</td>
+        <td class="px-3 py-2 text-xs">${fmtMoney(r.deals)}</td>
+        <td class="px-3 py-2"><span class="text-xs font-semibold ${roiColor}">${r.roi ? r.roi.toFixed(2) : '—'}</span>${roiTag}</td>
+        <td class="px-3 py-2">${statusBadge}</td>
+      </tr>`;
+    }).join('');
+  }
 
   // ---- 达人合作 ----
   function renderCreators() {
