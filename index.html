@@ -132,6 +132,10 @@
         <i class="fa-solid fa-users w-5 text-center"></i>
         <span>达人合作</span>
       </button>
+      <button onclick="switchTab('leaders')" id="nav-leaders" class="nav-item w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 transition-all">
+        <i class="fa-solid fa-network-wired w-5 text-center"></i>
+        <span>团长渠道</span>
+      </button>
       <button onclick="switchTab('review')" id="nav-review" class="nav-item w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 transition-all">
         <i class="fa-solid fa-chart-column w-5 text-center"></i>
         <span>内容复盘</span>
@@ -867,6 +871,35 @@
         </div>
       </section>
 
+      <!-- 7.5 团长渠道管理 -->
+      <section id="tab-leaders" class="tab-content hidden fade-in">
+        <div class="flex items-center justify-between mb-5 flex-wrap gap-3">
+          <div>
+            <h3 class="text-lg font-semibold text-slate-800">团长渠道管理</h3>
+            <p class="text-sm text-slate-500 mt-1">招商团长 / 机构 · 服务费 · 对接达人 / 店铺 · 成交</p>
+          </div>
+          <button onclick="openLdModal()" class="text-sm px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-lg transition-colors flex items-center">
+            <i class="fa-solid fa-plus mr-1.5"></i>新增团长
+          </button>
+        </div>
+
+        <div id="ld-summary" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5"></div>
+
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead><tr class="bg-slate-50 text-left text-xs text-slate-500 uppercase">
+                <th class="px-3 py-3 font-medium">团长 / 机构</th><th class="px-3 py-3 font-medium">平台</th>
+                <th class="px-3 py-3 font-medium">招商类目</th><th class="px-3 py-3 font-medium">服务费</th>
+                <th class="px-3 py-3 font-medium">对接店铺</th><th class="px-3 py-3 font-medium">对接达人</th>
+                <th class="px-3 py-3 font-medium">状态</th><th class="px-3 py-3 font-medium">成交</th><th class="px-3 py-3 font-medium w-24">操作</th>
+              </tr></thead>
+              <tbody id="ld-table" class="divide-y divide-slate-100"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
       <!-- 店铺数据录入弹窗 -->
       <div id="store-modal" class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onclick="if(event.target===this)closeStoreModal()">
         <div class="bg-white rounded-2xl p-6 w-full max-w-2xl shadow-xl max-h-[90vh] overflow-y-auto">
@@ -969,6 +1002,38 @@
           <div class="flex gap-2 mt-5">
             <button onclick="saveCr()" class="flex-1 px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-lg">保存</button>
             <button onclick="closeCrModal()" class="px-4 py-2.5 text-slate-500 hover:text-slate-700 rounded-lg">取消</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 团长弹窗 -->
+      <div id="ld-modal" class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onclick="if(event.target===this)closeLdModal()">
+        <div class="bg-white rounded-2xl p-6 w-full max-w-lg shadow-xl max-h-[90vh] overflow-y-auto">
+          <h3 id="ld-modal-title" class="text-lg font-bold text-slate-800 mb-4"><i class="fa-solid fa-network-wired mr-1.5 text-brand-600"></i>团长渠道</h3>
+          <input type="hidden" id="ld-id">
+          <div class="space-y-3">
+            <div class="grid grid-cols-2 gap-3">
+              <div><label class="text-xs text-slate-500">团长 / 机构名</label><input id="ld-name" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"></div>
+              <div><label class="text-xs text-slate-500">平台</label><select id="ld-platform" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm">
+                <option>抖音</option><option>快手</option><option>小红书</option><option>视频号</option></select></div>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div><label class="text-xs text-slate-500">招商类目</label><input id="ld-category" placeholder="如水饮 / 食品" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"></div>
+              <div><label class="text-xs text-slate-500">服务费%</label><input id="ld-fee" type="number" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"></div>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div><label class="text-xs text-slate-500">对接店铺</label><select id="ld-shop" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"></select></div>
+              <div><label class="text-xs text-slate-500">状态</label><select id="ld-status" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm">
+                <option>沟通中</option><option>合作中</option><option>已暂停</option><option>已结束</option></select></div>
+            </div>
+            <div><label class="text-xs text-slate-500">对接达人 <span class="text-slate-400 font-normal">（多选，关联 DR 达人）</span></label>
+              <select id="ld-creators" multiple class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm h-24"></select></div>
+            <div><label class="text-xs text-slate-500">成交</label><input id="ld-deals" type="number" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"></div>
+            <div><label class="text-xs text-slate-500">备注</label><textarea id="ld-note" rows="2" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"></textarea></div>
+          </div>
+          <div class="flex gap-2 mt-5">
+            <button onclick="saveLd()" class="flex-1 px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-lg">保存</button>
+            <button onclick="closeLdModal()" class="px-4 py-2.5 text-slate-500 hover:text-slate-700 rounded-lg">取消</button>
           </div>
         </div>
       </div>
@@ -1164,6 +1229,7 @@
       videopool: '视频需求池',
       qianchuan: '千川投放管理',
       creators: '达人合作管理',
+      leaders: '团长渠道管理',
       review: '内容复盘',
       memo: '备忘录',
       products: '商品管理'
@@ -1181,6 +1247,7 @@
     if (tabName === 'videopool') renderVideoPool();
     if (tabName === 'qianchuan') renderQianchuan();
     if (tabName === 'creators') renderCreators();
+    if (tabName === 'leaders') renderLeaders();
     if (tabName === 'review') { renderReviewHistory(); fillReviewDefaults(); }
     if (tabName === 'memo') initMemoSection();
     if (tabName === 'products') renderProducts();
@@ -4008,6 +4075,111 @@ ${r.script || '未填写'}
     saveData(appData); closeCrModal(); renderCreators();
   }
   function delCr(i) { if (confirm('删除该达人？')) { appData.creators.splice(i, 1); saveData(appData); renderCreators(); } }
+
+  // ---- 团长渠道管理（TZ 统一 ID，存 appData.v2.leaders）----
+  function getLeaders() { return (appData.v2 && appData.v2.leaders) || []; }
+  function getDrOptions() {
+    const v2 = (appData.v2 && appData.v2.creators) || [];
+    if (v2.length) return v2.map(d => ({ id: d.id, name: (d.info && d.info.name) || d.name || '' }));
+    return (appData.creators || []).map((c, i) => ({ id: 'idx' + i, name: c.name || '' }));
+  }
+  function getShopOptions() { return (appData.shops || []).map(s => ({ id: s.id, name: s.name })); }
+  function fillLdSelects() {
+    const shopSel = document.getElementById('ld-shop');
+    shopSel.innerHTML = '<option value="">—</option>' + getShopOptions().map(s => `<option value="${s.id}">${escapeHtml(s.name)}</option>`).join('');
+    const crSel = document.getElementById('ld-creators');
+    crSel.innerHTML = getDrOptions().map(d => `<option value="${d.id}">${escapeHtml(d.name)}</option>`).join('');
+  }
+  function renderLeaders() {
+    const list = getLeaders();
+    const coop = list.filter(l => l.status === '合作中').length;
+    const totalDeals = list.reduce((s, x) => s + (Number(x.deals) || 0), 0);
+    const avgFee = list.length ? (list.reduce((s, x) => s + (Number(x.fee) || 0), 0) / list.length).toFixed(1) : 0;
+    document.getElementById('ld-summary').innerHTML = `
+      ${card('团长总数', list.length, 'fa-network-wired', 'text-brand-600')}
+      ${card('合作中', coop, 'fa-handshake', 'text-emerald-600')}
+      ${card('总成交', fmtMoney(totalDeals), 'fa-yen-sign', 'text-orange-500')}
+      ${card('平均服务费', avgFee + '%', 'fa-percent', 'text-indigo-500')}
+    `;
+    const tb = document.getElementById('ld-table');
+    const statusColors = { '沟通中': 'slate', '合作中': 'emerald', '已暂停': 'amber', '已结束': 'gray' };
+    const shopName = id => (appData.shops || []).find(s => s.id === id)?.name || '—';
+    const drName = id => { const o = getDrOptions().find(d => d.id === id); return o ? o.name : ''; };
+    if (list.length === 0) { tb.innerHTML = '<tr><td colspan="9" class="px-3 py-10 text-center text-slate-300 text-sm">还没有团长，点「新增团长」</td></tr>'; }
+    else {
+      tb.innerHTML = list.map((l, i) => `
+        <tr class="hover:bg-slate-50">
+          <td class="px-3 py-2 font-medium text-slate-800">${escapeHtml(l.name || '')}</td>
+          <td class="px-3 py-2 text-xs">${escapeHtml(l.platform || '')}</td>
+          <td class="px-3 py-2 text-xs text-slate-500">${escapeHtml(l.category || '—')}</td>
+          <td class="px-3 py-2 text-xs">${l.fee ? l.fee + '%' : '—'}</td>
+          <td class="px-3 py-2 text-xs">${shopName(l.shop)}</td>
+          <td class="px-3 py-2 text-xs text-slate-500">${(l.creatorIds || []).map(drName).filter(Boolean).join('、') || '—'}</td>
+          <td class="px-3 py-2"><span class="text-xs px-2 py-0.5 rounded-full bg-${statusColors[l.status] || 'slate'}-100 text-${statusColors[l.status] || 'slate'}-700">${l.status || '沟通中'}</span></td>
+          <td class="px-3 py-2 text-xs">${fmtMoney(l.deals || 0)}</td>
+          <td class="px-3 py-2">
+            <button onclick="openLdModal(${i})" class="text-slate-400 hover:text-brand-600 mr-2"><i class="fa-solid fa-pen"></i></button>
+            <button onclick="delLd(${i})" class="text-slate-300 hover:text-red-500"><i class="fa-solid fa-trash"></i></button>
+          </td>
+        </tr>`).join('');
+    }
+  }
+  function openLdModal(i) {
+    fillLdSelects();
+    if (i === undefined) {
+      document.getElementById('ld-modal-title').textContent = '新增团长';
+      document.getElementById('ld-id').value = '';
+      document.getElementById('ld-name').value = '';
+      document.getElementById('ld-platform').selectedIndex = 0;
+      document.getElementById('ld-category').value = '';
+      document.getElementById('ld-fee').value = '';
+      document.getElementById('ld-shop').selectedIndex = 0;
+      document.getElementById('ld-status').selectedIndex = 0;
+      Array.from(document.getElementById('ld-creators').options).forEach(o => o.selected = false);
+      document.getElementById('ld-deals').value = '';
+      document.getElementById('ld-note').value = '';
+    } else {
+      const l = getLeaders()[i];
+      document.getElementById('ld-modal-title').textContent = '编辑团长';
+      document.getElementById('ld-id').value = i;
+      document.getElementById('ld-name').value = l.name || '';
+      document.getElementById('ld-platform').value = l.platform || '抖音';
+      document.getElementById('ld-category').value = l.category || '';
+      document.getElementById('ld-fee').value = l.fee || '';
+      document.getElementById('ld-shop').value = l.shop || '';
+      document.getElementById('ld-status').value = l.status || '沟通中';
+      const sel = document.getElementById('ld-creators');
+      Array.from(sel.options).forEach(o => { o.selected = (l.creatorIds || []).includes(o.value); });
+      document.getElementById('ld-deals').value = l.deals || '';
+      document.getElementById('ld-note').value = l.note || '';
+    }
+    document.getElementById('ld-modal').classList.remove('hidden');
+  }
+  function closeLdModal() { document.getElementById('ld-modal').classList.add('hidden'); }
+  function saveLd() {
+    const i = document.getElementById('ld-id').value;
+    const creatorsSel = document.getElementById('ld-creators');
+    const creatorIds = Array.from(creatorsSel.selectedOptions).map(o => o.value);
+    const data = {
+      id: '',
+      name: document.getElementById('ld-name').value.trim(),
+      platform: document.getElementById('ld-platform').value,
+      category: document.getElementById('ld-category').value.trim(),
+      fee: Number(document.getElementById('ld-fee').value) || 0,
+      shop: document.getElementById('ld-shop').value,
+      status: document.getElementById('ld-status').value,
+      creatorIds: creatorIds,
+      deals: Number(document.getElementById('ld-deals').value) || 0,
+      note: document.getElementById('ld-note').value.trim()
+    };
+    if (!appData.v2) appData.v2 = { version: 2, products: [], scripts: [], videos: [], qianchuan: [], creators: [], leaders: [] };
+    if (!appData.v2.leaders) appData.v2.leaders = [];
+    const arr = appData.v2.leaders;
+    if (i === '') { data.id = v2NextId(appData.v2, 'TZ'); arr.push(data); }
+    else { data.id = arr[i].id; arr[i] = data; }
+    saveData(appData); closeLdModal(); renderLeaders();
+  }
+  function delLd(i) { if (confirm('删除该团长？')) { getLeaders().splice(i, 1); saveData(appData); renderLeaders(); } }
 
   // ================= 初始化 =================
   document.addEventListener('DOMContentLoaded', async () => {
