@@ -116,6 +116,10 @@
         <i class="fa-solid fa-fire w-5 text-center"></i>
         <span>爆款热点 / 二创</span>
       </button>
+      <button onclick="switchTab('scripts')" id="nav-scripts" class="nav-item w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 transition-all">
+        <i class="fa-solid fa-file-lines w-5 text-center"></i>
+        <span>脚本中心</span>
+      </button>
       <button onclick="switchTab('videopool')" id="nav-videopool" class="nav-item w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 transition-all">
         <i class="fa-solid fa-list-check w-5 text-center"></i>
         <span>视频需求池</span>
@@ -300,6 +304,7 @@
             <div class="mt-4 flex flex-wrap gap-2">
               <button onclick="copyOriginal()" class="px-4 py-2 text-sm bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors"><i class="fa-solid fa-copy mr-1"></i>复制</button>
               <button onclick="saveOriginalToMemo()" class="px-4 py-2 text-sm bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors"><i class="fa-solid fa-note-sticky mr-1"></i>存备忘录</button>
+              <button onclick="saveResultToScriptCenter('original')" class="px-4 py-2 text-sm bg-brand-50 hover:bg-brand-100 text-brand-700 rounded-lg transition-colors"><i class="fa-solid fa-file-lines mr-1"></i>存脚本中心</button>
               <button onclick="useOriginalAsTask()" class="px-4 py-2 text-sm bg-brand-600 hover:bg-brand-700 text-white rounded-lg transition-colors"><i class="fa-solid fa-list-check mr-1"></i>加入每日计划</button>
             </div>
           </div>
@@ -370,9 +375,10 @@
             <div id="rewrite-result" class="hidden bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
               <h3 class="font-semibold text-slate-800 mb-4">二创脚本</h3>
               <div id="rewrite-content" class="space-y-4"></div>
-              <div class="mt-4 flex gap-2">
+              <div class="mt-4 flex flex-wrap gap-2">
                 <button onclick="copyRewrite()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm transition-colors"><i class="fa-regular fa-copy mr-1"></i>复制脚本</button>
                 <button onclick="saveRewriteToMemo()" class="px-4 py-2 bg-brand-50 hover:bg-brand-100 text-brand-700 rounded-lg text-sm transition-colors"><i class="fa-solid fa-plus mr-1"></i>加入备忘录</button>
+                <button onclick="saveResultToScriptCenter('rewrite')" class="px-4 py-2 bg-brand-50 hover:bg-brand-100 text-brand-700 rounded-lg text-sm transition-colors"><i class="fa-solid fa-file-lines mr-1"></i>存脚本中心</button>
               </div>
             </div>
           </div>
@@ -380,6 +386,85 @@
       </section>
 
       <!-- 4. 内容复盘 -->
+      <!-- 脚本中心 -->
+      <section id="tab-scripts" class="tab-content hidden fade-in">
+        <div class="flex items-center justify-between mb-6">
+          <div>
+            <h3 class="text-lg font-semibold text-slate-800">脚本中心</h3>
+            <p class="text-sm text-slate-500 mt-1">统一管理已生成的脚本，关联商品与视频需求，形成「选题 → 脚本 → 拍摄」的内容生产链路。</p>
+          </div>
+          <div class="flex items-center gap-3">
+            <button onclick="openScriptModal()" class="px-5 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-medium transition-colors">
+              <i class="fa-solid fa-plus mr-2"></i>新增脚本
+            </button>
+          </div>
+        </div>
+
+        <div id="scripts-summary" class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 mb-6"></div>
+
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 mb-5 flex flex-wrap items-center gap-3">
+          <input id="scripts-search" oninput="renderScripts()" placeholder="搜索脚本标题 / 商品 / 人群…" class="flex-1 min-w-[200px] px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500">
+          <select id="scripts-filter-shop" onchange="renderScripts()" class="px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500">
+            <option value="">全部店铺</option>
+          </select>
+          <select id="scripts-filter-status" onchange="renderScripts()" class="px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500">
+            <option value="">全部状态</option>
+          </select>
+        </div>
+
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left">
+              <thead class="bg-slate-50 text-slate-500 text-xs uppercase tracking-wide">
+                <tr>
+                  <th class="px-4 py-3 font-medium">脚本ID</th>
+                  <th class="px-4 py-3 font-medium">标题</th>
+                  <th class="px-4 py-3 font-medium">关联商品</th>
+                  <th class="px-4 py-3 font-medium">人群 / 场景</th>
+                  <th class="px-4 py-3 font-medium">视频方向</th>
+                  <th class="px-4 py-3 font-medium">状态</th>
+                  <th class="px-4 py-3 font-medium">关联视频需求</th>
+                  <th class="px-4 py-3 font-medium w-40">操作</th>
+                </tr>
+              </thead>
+              <tbody id="scripts-table" class="divide-y divide-slate-100"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- 脚本详情/编辑弹窗 -->
+      <div id="script-modal" class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onclick="if(event.target===this)closeScriptModal()">
+        <div class="bg-white rounded-2xl p-6 w-full max-w-2xl shadow-xl max-h-[90vh] overflow-y-auto">
+          <h3 id="script-modal-title" class="text-lg font-bold text-slate-800 mb-4"><i class="fa-solid fa-file-lines mr-1.5 text-brand-600"></i>脚本</h3>
+          <input type="hidden" id="script-id">
+          <div class="space-y-3">
+            <div class="grid grid-cols-3 gap-3">
+              <div class="col-span-2"><label class="text-xs text-slate-500">脚本标题</label><input id="script-title" placeholder="例如：办公室囤水·15s口播" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"></div>
+              <div><label class="text-xs text-slate-500">状态</label><select id="script-status" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm">
+                <option>草稿</option><option>编写中</option><option>已定稿</option><option>拍摄中</option><option>已发布</option><option>废弃</option></select></div>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div><label class="text-xs text-slate-500">关联商品 <span class="text-slate-400 font-normal">（SP 统一ID）</span></label><select id="script-product" onchange="onScriptProductChange()" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"></select></div>
+              <div><label class="text-xs text-slate-500">关联视频需求 <span class="text-slate-400 font-normal">（视频需求池）</span></label><select id="script-videoneed" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"></select></div>
+            </div>
+            <div class="grid grid-cols-3 gap-3">
+              <div><label class="text-xs text-slate-500">人群</label><input id="script-audience" placeholder="如：办公室白领" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"></div>
+              <div><label class="text-xs text-slate-500">场景</label><input id="script-scene" placeholder="如：办公室囤水" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"></div>
+              <div><label class="text-xs text-slate-500">框架（可选）</label><select id="script-framework" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm">
+                <option value="">不指定</option><option value="fw_001">fw_001 黄金四段式</option><option value="fw_002">fw_002 痛点反转</option><option value="fw_003">fw_003 场景种草</option><option value="fw_004">fw_004 测评对比</option><option value="fw_005">fw_005 破同质化</option><option value="fw_006">fw_006 信任背书</option></select></div>
+            </div>
+            <div><label class="text-xs text-slate-500">视频方向</label><input id="script-videodir" placeholder="如：ASMR开箱 + 整齐摆放特写" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"></div>
+            <div><label class="text-xs text-slate-500">脚本正文</label><textarea id="script-body" rows="10" placeholder="粘贴或撰写脚本：钩子 / 场景 / 画面 / 收尾引导…" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-mono leading-relaxed"></textarea></div>
+            <p id="script-product-meta" class="hidden text-xs text-slate-500 bg-slate-50 rounded-lg px-3 py-2"></p>
+          </div>
+          <div class="flex gap-2 mt-5">
+            <button onclick="saveScript()" class="flex-1 px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-lg">保存</button>
+            <button onclick="closeScriptModal()" class="px-4 py-2.5 text-slate-500 hover:text-slate-700 rounded-lg">取消</button>
+          </div>
+        </div>
+      </div>
+
       <section id="tab-review" class="tab-content hidden fade-in">
         <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
           <!-- 左侧：数据录入 -->
@@ -691,7 +776,7 @@
                 <th class="px-3 py-3 font-medium">标题</th><th class="px-3 py-3 font-medium">店铺</th>
                 <th class="px-3 py-3 font-medium">类型</th><th class="px-3 py-3 font-medium">优先级</th>
                 <th class="px-3 py-3 font-medium">状态</th><th class="px-3 py-3 font-medium">负责人</th>
-                <th class="px-3 py-3 font-medium">截止</th><th class="px-3 py-3 font-medium">素材</th><th class="px-3 py-3 font-medium w-24">操作</th>
+                <th class="px-3 py-3 font-medium">截止</th><th class="px-3 py-3 font-medium">素材</th><th class="px-3 py-3 font-medium">关联脚本</th><th class="px-3 py-3 font-medium w-24">操作</th>
               </tr></thead>
               <tbody id="vp-table" class="divide-y divide-slate-100"></tbody>
             </table>
@@ -797,7 +882,8 @@
             </div>
             <div><label class="text-xs text-slate-500">素材状态</label><select id="vp-material" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm">
               <option>无</option><option>采集中</option><option>已备</option></select></div>
-            <div><label class="text-xs text-slate-500">脚本 / 备注</label><textarea id="vp-note" rows="3" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"></textarea></div>
+            <div><label class="text-xs text-slate-500">关联脚本 <span class="text-slate-400 font-normal">（脚本中心 JB）</span></label><select id="vp-script" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"></select></div>
+            <div class="col-span-2"><label class="text-xs text-slate-500">脚本 / 备注</label><textarea id="vp-note" rows="3" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"></textarea></div>
           </div>
           <div class="flex gap-2 mt-5">
             <button onclick="saveVp()" class="flex-1 px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-lg">保存</button>
@@ -1038,7 +1124,9 @@
   }
 
   // ================= 导航切换 =================
+  let activeTab = 'cockpit';
   function switchTab(tabName) {
+    activeTab = tabName;
     document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
     document.getElementById('tab-' + tabName).classList.remove('hidden');
     document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
@@ -1049,6 +1137,7 @@
       daily: '每日计划',
       ideas: '选题每日灵感',
       trending: '爆款热点视频 / 二创',
+      scripts: '脚本中心',
       videopool: '视频需求池',
       qianchuan: '千川投放管理',
       creators: '达人合作管理',
@@ -1065,6 +1154,7 @@
       if (hotListData === hotExamples || hotApi.autoRefresh !== false) renderHotList();
       populateProductSelect();
     }
+    if (tabName === 'scripts') renderScripts();
     if (tabName === 'videopool') renderVideoPool();
     if (tabName === 'qianchuan') renderQianchuan();
     if (tabName === 'creators') renderCreators();
@@ -3228,9 +3318,11 @@ ${r.script || '未填写'}
       return `<div class="bg-white rounded-xl border border-slate-200 p-3"><p class="text-xs text-slate-400">${st}</p><p class="text-xl font-bold text-slate-800">${n}</p></div>`;
     }).join('');
     const tb = document.getElementById('vp-table');
-    if (list.length === 0) { tb.innerHTML = '<tr><td colspan="9" class="px-3 py-10 text-center text-slate-300 text-sm">还没有需求，点「新增需求」开始</td></tr>'; }
+    if (list.length === 0) { tb.innerHTML = '<tr><td colspan="10" class="px-3 py-10 text-center text-slate-300 text-sm">还没有需求，点「新增需求」开始</td></tr>'; }
     else {
-      tb.innerHTML = list.map((v, i) => `
+      tb.innerHTML = list.map((v, i) => {
+        const linked = (appData.v2 && appData.v2.scripts || []).find(s => s.id === v.scriptId);
+        return `
         <tr class="hover:bg-slate-50">
           <td class="px-3 py-2 font-medium text-slate-800">${escapeHtml(v.title || '')}</td>
           <td class="px-3 py-2 text-xs text-slate-500">${escapeHtml(v.shop || '')}</td>
@@ -3240,11 +3332,13 @@ ${r.script || '未填写'}
           <td class="px-3 py-2 text-xs text-slate-500">${escapeHtml(v.owner || '—')}</td>
           <td class="px-3 py-2 text-xs text-slate-500">${v.due || '—'}</td>
           <td class="px-3 py-2 text-xs">${v.material ? (v.material === '已备' ? '<span class="text-emerald-600">已备</span>' : v.material === '采集中' ? '<span class="text-amber-600">采集中</span>' : '<span class="text-slate-300">无</span>') : '—'}</td>
+          <td class="px-3 py-2 text-xs">${linked ? `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-brand-50 text-brand-700" title="${escapeHtml(linked.title || '')}"><i class="fa-solid fa-file-lines text-[10px]"></i>${linked.id}</span>` : '<span class="text-slate-300">—</span>'}</td>
           <td class="px-3 py-2">
             <button onclick="openVpModal(${i})" class="text-slate-400 hover:text-brand-600 mr-2"><i class="fa-solid fa-pen"></i></button>
             <button onclick="delVp(${i})" class="text-slate-300 hover:text-red-500"><i class="fa-solid fa-trash"></i></button>
           </td>
-        </tr>`).join('');
+        </tr>`;
+      }).join('');
     }
     const schedule = list.filter(v => v.status && v.status !== '已发布' && v.status !== '废弃').slice().sort((a, b) => (a.due || '9999').localeCompare(b.due || '9999'));
     const sc = document.getElementById('vp-schedule');
@@ -3260,6 +3354,7 @@ ${r.script || '未填写'}
   }
   function openVpModal(i) {
     fillShopSelect('vp-shop');
+    populateVpScriptSelect();
     if (i === undefined) {
       document.getElementById('vp-modal-title').textContent = '新增视频需求';
       document.getElementById('vp-id').value = '';
@@ -3271,6 +3366,7 @@ ${r.script || '未填写'}
       document.getElementById('vp-owner').value = '';
       document.getElementById('vp-due').value = '';
       document.getElementById('vp-material').selectedIndex = 0;
+      document.getElementById('vp-script').value = '';
       document.getElementById('vp-note').value = '';
     } else {
       const v = appData.videoRequests[i];
@@ -3284,6 +3380,7 @@ ${r.script || '未填写'}
       document.getElementById('vp-owner').value = v.owner || '';
       document.getElementById('vp-due').value = v.due || '';
       document.getElementById('vp-material').value = v.material || '无';
+      document.getElementById('vp-script').value = v.scriptId || '';
       document.getElementById('vp-note').value = v.note || '';
     }
     document.getElementById('vp-modal').classList.remove('hidden');
@@ -3291,6 +3388,7 @@ ${r.script || '未填写'}
   function closeVpModal() { document.getElementById('vp-modal').classList.add('hidden'); }
   function saveVp() {
     const i = document.getElementById('vp-id').value;
+    const scriptId = document.getElementById('vp-script').value;
     const data = {
       title: document.getElementById('vp-title').value.trim(),
       shop: document.getElementById('vp-shop').value,
@@ -3300,13 +3398,313 @@ ${r.script || '未填写'}
       owner: document.getElementById('vp-owner').value.trim(),
       due: document.getElementById('vp-due').value,
       material: document.getElementById('vp-material').value,
-      note: document.getElementById('vp-note').value.trim()
+      note: document.getElementById('vp-note').value.trim(),
+      scriptId: scriptId || ''
     };
     if (!appData.videoRequests) appData.videoRequests = [];
-    if (i === '') appData.videoRequests.push(data); else appData.videoRequests[i] = data;
+    if (i === '') { data.id = genVrId(); appData.videoRequests.push(data); }
+    else { data.id = appData.videoRequests[i].id || genVrId(); appData.videoRequests[i] = data; }
+    syncScriptVideoNeed(data.id, scriptId);
     saveData(appData); closeVpModal(); renderVideoPool();
+    if (activeTab === 'scripts') renderScripts();
   }
-  function delVp(i) { if (confirm('删除该需求？')) { appData.videoRequests.splice(i, 1); saveData(appData); renderVideoPool(); } }
+  function delVp(i) { if (confirm('删除该需求？')) { const v = appData.videoRequests[i]; if (v && v.scriptId) syncScriptVideoNeed(v.id, ''); appData.videoRequests.splice(i, 1); saveData(appData); renderVideoPool(); } }
+
+  // ================= 脚本中心（基于 V2 统一ID：JB / SP / 视频需求 VR） =================
+  const SCRIPT_STATUSES = ['草稿', '编写中', '已定稿', '拍摄中', '已发布', '废弃'];
+  const SCRIPT_STATUS_COLORS = { '草稿': 'slate', '编写中': 'blue', '已定稿': 'indigo', '拍摄中': 'violet', '已发布': 'emerald', '废弃': 'gray' };
+
+  function ensureV2() { if (!appData.v2) { migrateV2(appData); } if (!appData.v2.scripts) appData.v2.scripts = []; return appData.v2; }
+  function genJbId() { const m = ensureV2(); return v2NextId(m, 'JB'); }
+  function genVrId() { return 'VR' + Math.random().toString(36).slice(2, 8).toUpperCase(); }
+
+  // 给所有视频需求补一个稳定 id（供脚本反查关联）
+  function normalizeVideoRequests() {
+    if (!appData.videoRequests) return;
+    let changed = false;
+    appData.videoRequests.forEach(v => { if (!v.id) { v.id = genVrId(); changed = true; } });
+    if (changed) saveData(appData);
+  }
+
+  // legacy PRODUCTS id -> V2 商品 SP id
+  function mapLegacyProductToSp(legacyId) {
+    if (!legacyId) return '';
+    const sp = (appData.v2 && appData.v2.products || []).find(p => p.legacyId === legacyId);
+    return sp ? sp.id : '';
+  }
+  function getSpProduct(spId) {
+    return (appData.v2 && appData.v2.products || []).find(p => p.id === spId) || null;
+  }
+  function getVrById(vrId) {
+    return (appData.videoRequests || []).find(v => v.id === vrId) || null;
+  }
+
+  // 双向同步：视频需求 <-> 脚本
+  function syncScriptVideoNeed(vrId, scriptId) {
+    const scripts = ensureV2().scripts;
+    // 清除旧的脚本对该视频需求的引用
+    scripts.forEach(s => { if (s.videoRequestId === vrId) s.videoRequestId = ''; });
+    // 设置新的引用
+    if (scriptId) {
+      const s = scripts.find(x => x.id === scriptId);
+      if (s) s.videoRequestId = vrId;
+    }
+    saveData(appData);
+  }
+
+  function populateScriptProductSelect(selId) {
+    const sel = document.getElementById(selId);
+    const prods = (appData.v2 && appData.v2.products || []);
+    sel.innerHTML = '<option value="">不关联商品</option>' + prods.map(p =>
+      `<option value="${p.id}">${escapeHtml(p.name)}（${escapeHtml(p.brand)}）· ${escapeHtml(p.shop || '')}</option>`
+    ).join('');
+  }
+  function populateScriptVideoNeedSelect(selId, current) {
+    const sel = document.getElementById(selId);
+    const list = appData.videoRequests || [];
+    sel.innerHTML = '<option value="">不关联视频需求</option>' + list.map(v =>
+      `<option value="${v.id}" ${v.id === current ? 'selected' : ''}>${escapeHtml(v.title || '未命名')}（${escapeHtml(v.shop || '')}）</option>`
+    ).join('');
+  }
+  function populateVpScriptSelect() {
+    const sel = document.getElementById('vp-script');
+    if (!sel) return;
+    const scripts = ensureV2().scripts;
+    sel.innerHTML = '<option value="">不关联脚本</option>' + scripts.map(s =>
+      `<option value="${s.id}">${s.id} · ${escapeHtml(s.title || '未命名脚本')}</option>`
+    ).join('');
+  }
+
+  function onScriptProductChange() {
+    const spId = document.getElementById('script-product').value;
+    const meta = document.getElementById('script-product-meta');
+    if (!spId) { meta.classList.add('hidden'); return; }
+    const p = getSpProduct(spId);
+    if (!p) { meta.classList.add('hidden'); return; }
+    const parts = [];
+    if (p.price) parts.push('管控价：' + p.price);
+    if (p.activity) parts.push('活动：' + p.activity);
+    if (p.tier) parts.push('等级：' + p.tier);
+    if (p.audience) parts.push('人群：' + p.audience);
+    if (p.materialDir) parts.push('素材方向：' + p.materialDir);
+    parts.push('店铺：' + (p.shop || '待维护'));
+    meta.innerHTML = '<i class="fa-solid fa-circle-info mr-1 text-brand-500"></i>' + parts.join(' · ');
+    meta.classList.remove('hidden');
+  }
+
+  function renderScripts() {
+    ensureV2();
+    populateScriptProductSelect('script-product');
+    // 店铺 / 状态筛选下拉
+    const shopSel = document.getElementById('scripts-filter-shop');
+    const statusSel = document.getElementById('scripts-filter-status');
+    if (shopSel.options.length <= 1) shopSel.innerHTML = '<option value="">全部店铺</option>' + SHOP_LIST.map(s => `<option>${s}</option>`).join('');
+    if (statusSel.options.length <= 1) statusSel.innerHTML = '<option value="">全部状态</option>' + SCRIPT_STATUSES.map(s => `<option>${s}</option>`).join('');
+
+    const scripts = appData.v2.scripts.slice();
+    const total = scripts.length;
+    const byStatus = {};
+    SCRIPT_STATUSES.forEach(s => byStatus[s] = 0);
+    scripts.forEach(s => { byStatus[s.status] = (byStatus[s.status] || 0) + 1; });
+    document.getElementById('scripts-summary').innerHTML = [
+      card('脚本总数', total, 'fa-file-lines', 'text-brand-600'),
+      card('已定稿', byStatus['已定稿'] || 0, 'fa-check-double', 'text-indigo-500'),
+      card('拍摄中', byStatus['拍摄中'] || 0, 'fa-video', 'text-violet-500'),
+      card('已发布', byStatus['已发布'] || 0, 'fa-circle-check', 'text-emerald-500'),
+      card('草稿', byStatus['草稿'] || 0, 'fa-pen', 'text-slate-500'),
+      card('废弃', byStatus['废弃'] || 0, 'fa-trash', 'text-red-400')
+    ].join('');
+
+    const q = (document.getElementById('scripts-search').value || '').trim().toLowerCase();
+    const fShop = shopSel.value;
+    const fStatus = statusSel.value;
+    const filtered = scripts.filter(s => {
+      const p = getSpProduct(s.productId);
+      const shop = p ? p.shop : '';
+      if (fShop && shop !== fShop) return false;
+      if (fStatus && s.status !== fStatus) return false;
+      if (q) {
+        const hay = (s.title + ' ' + (p ? p.name + p.brand : '') + ' ' + (s.audience || '') + ' ' + (s.scene || '') + ' ' + (s.videoDir || '')).toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+
+    const tb = document.getElementById('scripts-table');
+    if (filtered.length === 0) {
+      tb.innerHTML = `<tr><td colspan="8" class="px-4 py-10 text-center text-slate-300 text-sm">还没有脚本，点「新增脚本」或在二创 / 原创生成后「存脚本中心」</td></tr>`;
+      return;
+    }
+    tb.innerHTML = filtered.map(s => {
+      const p = getSpProduct(s.productId);
+      const vr = s.videoRequestId ? getVrById(s.videoRequestId) : null;
+      const sc = SCRIPT_STATUS_COLORS[s.status] || 'slate';
+      return `
+        <tr class="hover:bg-slate-50">
+          <td class="px-4 py-3 text-xs font-medium text-brand-700">${s.id}</td>
+          <td class="px-4 py-3 font-medium text-slate-800">${escapeHtml(s.title || '未命名脚本')}</td>
+          <td class="px-4 py-3 text-xs">${p ? `<div>${escapeHtml(p.name)}</div><div class="text-slate-400">${escapeHtml(p.brand)} · ${escapeHtml(p.id)}</div>` : '<span class="text-slate-300">未关联</span>'}</td>
+          <td class="px-4 py-3 text-xs text-slate-500">${escapeHtml(s.audience || '—')}<br>${escapeHtml(s.scene || '—')}</td>
+          <td class="px-4 py-3 text-xs text-slate-500 max-w-[180px]">${escapeHtml(s.videoDir || '—')}</td>
+          <td class="px-4 py-3"><span class="text-xs px-2 py-0.5 rounded-full bg-${sc}-100 text-${sc}-700">${s.status || '草稿'}</span></td>
+          <td class="px-4 py-3 text-xs">${vr ? `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-brand-50 text-brand-700" title="点击查看视频需求" style="cursor:pointer" onclick="switchTab('videopool')"><i class="fa-solid fa-list-check text-[10px]"></i>${escapeHtml(vr.title || '未命名')}</span>` : '<span class="text-slate-300">—</span>'}</td>
+          <td class="px-4 py-3">
+            <div class="flex items-center gap-1.5">
+              <button onclick="viewScript('${s.id}')" class="text-xs px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded" title="查看/编辑"><i class="fa-solid fa-eye"></i></button>
+              <button onclick="openScriptModal('${s.id}')" class="text-xs px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded" title="编辑"><i class="fa-solid fa-pen"></i></button>
+              <button onclick="generateVideoNeedFromScript('${s.id}')" class="text-xs px-2 py-1 bg-brand-50 hover:bg-brand-100 text-brand-700 rounded" title="生成视频需求"><i class="fa-solid fa-list-check"></i></button>
+              <button onclick="copyScript('${s.id}')" class="text-xs px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded" title="复制正文"><i class="fa-regular fa-copy"></i></button>
+              <button onclick="delScript('${s.id}')" class="text-xs px-2 py-1 bg-red-50 hover:bg-red-100 text-red-600 rounded" title="删除"><i class="fa-solid fa-trash"></i></button>
+            </div>
+          </td>
+        </tr>`;
+    }).join('');
+  }
+
+  function openScriptModal(id) {
+    ensureV2();
+    populateScriptProductSelect('script-product');
+    const scripts = appData.v2.scripts;
+    if (!id) {
+      document.getElementById('script-modal-title').textContent = '新增脚本';
+      document.getElementById('script-id').value = '';
+      document.getElementById('script-title').value = (window._pendingScript && window._pendingScript.title) || '';
+      document.getElementById('script-status').value = '草稿';
+      document.getElementById('script-product').value = (window._pendingScript && window._pendingScript.productId) || '';
+      document.getElementById('script-videoneed').value = (window._pendingScript && window._pendingScript.videoRequestId) || '';
+      document.getElementById('script-audience').value = (window._pendingScript && window._pendingScript.audience) || '';
+      document.getElementById('script-scene').value = (window._pendingScript && window._pendingScript.scene) || '';
+      document.getElementById('script-framework').value = (window._pendingScript && window._pendingScript.framework) || '';
+      document.getElementById('script-videodir').value = (window._pendingScript && window._pendingScript.videoDir) || '';
+      document.getElementById('script-body').value = (window._pendingScript && window._pendingScript.body) || '';
+      window._pendingScript = null;
+    } else {
+      const s = scripts.find(x => x.id === id);
+      if (!s) return;
+      document.getElementById('script-modal-title').textContent = '编辑脚本 · ' + s.id;
+      document.getElementById('script-id').value = s.id;
+      document.getElementById('script-title').value = s.title || '';
+      document.getElementById('script-status').value = s.status || '草稿';
+      document.getElementById('script-product').value = s.productId || '';
+      document.getElementById('script-videoneed').value = s.videoRequestId || '';
+      document.getElementById('script-audience').value = s.audience || '';
+      document.getElementById('script-scene').value = s.scene || '';
+      document.getElementById('script-framework').value = s.framework || '';
+      document.getElementById('script-videodir').value = s.videoDir || '';
+      document.getElementById('script-body').value = s.body || '';
+    }
+    populateScriptVideoNeedSelect('script-videoneed', document.getElementById('script-videoneed').value);
+    onScriptProductChange();
+    document.getElementById('script-modal').classList.remove('hidden');
+  }
+  function closeScriptModal() { document.getElementById('script-modal').classList.add('hidden'); }
+
+  function saveScript() {
+    const id = document.getElementById('script-id').value;
+    const scripts = ensureV2().scripts;
+    const productId = document.getElementById('script-product').value;
+    const videoRequestId = document.getElementById('script-videoneed').value;
+    const data = {
+      id: id || genJbId(),
+      title: document.getElementById('script-title').value.trim() || '未命名脚本',
+      productId: productId || '',
+      videoRequestId: videoRequestId || '',
+      audience: document.getElementById('script-audience').value.trim(),
+      scene: document.getElementById('script-scene').value.trim(),
+      framework: document.getElementById('script-framework').value,
+      videoDir: document.getElementById('script-videodir').value.trim(),
+      status: document.getElementById('script-status').value,
+      body: document.getElementById('script-body').value,
+      updatedAt: new Date().toISOString()
+    };
+    if (!id) { data.createdAt = new Date().toISOString(); scripts.push(data); }
+    else { const idx = scripts.findIndex(x => x.id === id); if (idx >= 0) { data.createdAt = scripts[idx].createdAt || new Date().toISOString(); scripts[idx] = data; } else scripts.push(data); }
+    // 同步视频需求的 scriptId 反链
+    if (videoRequestId) {
+      const vr = getVrById(videoRequestId);
+      if (vr) { vr.scriptId = data.id; }
+    }
+    // 清掉其他视频需求对该脚本的反链（如改了关联）
+    (appData.videoRequests || []).forEach(v => { if (v.scriptId === data.id && v.id !== videoRequestId) v.scriptId = ''; });
+    saveData(appData);
+    closeScriptModal();
+    renderScripts();
+    if (activeTab === 'videopool') renderVideoPool();
+    showToast('脚本已保存 ' + data.id, 'success');
+  }
+
+  function delScript(id) {
+    if (!confirm('删除脚本 ' + id + '？此操作不可撤销。')) return;
+    const scripts = ensureV2().scripts;
+    const idx = scripts.findIndex(x => x.id === id);
+    if (idx >= 0) {
+      const s = scripts[idx];
+      if (s.videoRequestId) { const vr = getVrById(s.videoRequestId); if (vr && vr.scriptId === id) vr.scriptId = ''; }
+      scripts.splice(idx, 1);
+    }
+    saveData(appData); renderScripts();
+    if (activeTab === 'videopool') renderVideoPool();
+  }
+
+  function viewScript(id) {
+    const s = ensureV2().scripts.find(x => x.id === id);
+    if (!s) return;
+    const p = getSpProduct(s.productId);
+    const vr = s.videoRequestId ? getVrById(s.videoRequestId) : null;
+    const meta = [];
+    if (p) meta.push('商品：' + p.name + '（' + p.brand + '）· ' + p.id);
+    if (vr) meta.push('视频需求：' + vr.title);
+    if (s.audience) meta.push('人群：' + s.audience);
+    if (s.scene) meta.push('场景：' + s.scene);
+    if (s.framework) meta.push('框架：' + s.framework);
+    if (s.videoDir) meta.push('视频方向：' + s.videoDir);
+    alert('【' + s.id + '】' + s.title + '\n\n' + meta.join('\n') + '\n\n———— 脚本正文 ————\n\n' + (s.body || '（暂无正文）'));
+  }
+
+  function copyScript(id) {
+    const s = ensureV2().scripts.find(x => x.id === id);
+    if (!s) return;
+    navigator.clipboard.writeText(s.body || '').then(() => showToast('脚本正文已复制', 'success'));
+  }
+
+  // 从脚本一键生成视频需求（反向打通：脚本 → 视频需求池）
+  function generateVideoNeedFromScript(id) {
+    const s = ensureV2().scripts.find(x => x.id === id);
+    if (!s) return;
+    if (confirm('基于脚本 ' + id + ' 生成一条视频需求？\n（标题：' + (s.title || '未命名') + '）')) {
+      if (!appData.videoRequests) appData.videoRequests = [];
+      const vr = { id: genVrId(), title: s.title || '未命名脚本', shop: s.productId ? (getSpProduct(s.productId) || {}).shop || SHOP_LIST[0] : SHOP_LIST[0], type: '种草', priority: '中', status: '脚本中', owner: '', due: '', material: '无', note: '由脚本 ' + id + ' 生成', scriptId: id };
+      appData.videoRequests.push(vr);
+      s.videoRequestId = vr.id;
+      saveData(appData);
+      renderScripts();
+      switchTab('videopool');
+      renderVideoPool();
+      showToast('已生成视频需求并关联脚本 ' + id, 'success');
+    }
+  }
+
+  // 二创 / 原创 生成结果 → 存脚本中心
+  function saveResultToScriptCenter(source) {
+    const elId = source === 'original' ? 'original-content' : 'rewrite-content';
+    const el = document.getElementById(elId);
+    if (!el || el.innerText.trim() === '') { alert('请先生成脚本'); return; }
+    let productId = '';
+    let title = '';
+    if (source === 'original') {
+      const ideaIdx = document.getElementById('idea-select').value;
+      const idea = ideaIdx !== '' ? buildIdeaDisplay()[parseInt(ideaIdx, 10)] : null;
+      title = idea ? idea.title : '原创脚本';
+      productId = mapLegacyProductToSp(document.getElementById('idea-product-select').value);
+    } else {
+      const hotIdx = document.getElementById('selected-hot').value;
+      const hot = hotIdx !== '' ? (hotListData[hotIdx] || hotExamples[hotIdx]) : null;
+      title = hot ? ('二创：' + hot.title) : '二创脚本';
+      productId = mapLegacyProductToSp(document.getElementById('product-select').value);
+    }
+    window._pendingScript = { title: title, productId: productId, body: el.innerText.trim() };
+    openScriptModal('');
+  }
 
   // ---- 千川投放 ----
   function renderQianchuan() {
@@ -3475,6 +3873,7 @@ ${r.script || '未填写'}
   document.addEventListener('DOMContentLoaded', async () => {
     await tryLoadFromHash();
     migrateV2(appData); // V2.0 数据层迁移（幂等，旧页面兼容）
+    normalizeVideoRequests(); // 给视频需求补稳定 id，供脚本中心关联
     updateDate();
     renderTasks();
     // 如果是新的一天，自动刷新灵感
