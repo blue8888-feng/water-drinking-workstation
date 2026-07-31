@@ -1102,6 +1102,11 @@
     return Object.keys(SHOP_BRANDS).find(s => (SHOP_BRANDS[s] || []).includes(brand)) || '';
   }
 
+  function primaryShopOfBrand(brand) {
+    if (typeof PRIMARY_SHOP_BY_BRAND !== 'undefined' && PRIMARY_SHOP_BY_BRAND[brand]) return PRIMARY_SHOP_BY_BRAND[brand];
+    return shopOfBrand(brand);
+  }
+
   // 旧视频需求池状态 -> V2 视频状态枚举
   const V2_VIDEO_STATUS_MAP = {
     '待写脚本': '待制作', '脚本中': '待制作',
@@ -1128,7 +1133,8 @@
         id: v2NextId(model, 'SP'),
         name: p.name,
         brand: p.brand,
-        shop: shopOfBrand(p.brand),
+        shop: primaryShopOfBrand(p.brand),
+        shops: productShops(p),
         sp: (e.sp !== undefined && e.sp !== '') ? e.sp : p.sp,
         price: e.price || '',
         activity: e.activity || '',
@@ -2024,6 +2030,19 @@ function copyOriginal() {
     '蘇泉水饮旗舰店': ['蘇泉'],
     '虎丘官方旗舰店': ['虎丘'],
     '好水严选': []  // 源表中未提供该店品牌，可在下方表格自行维护
+  };
+
+  // 品牌 → 主营店铺（优先放入该品牌的独立旗舰店，避免全部落到第一家店铺）
+  const PRIMARY_SHOP_BY_BRAND = {
+    '洞庭山泉': '洞庭山泉官方旗舰店',
+    '洞庭山': '洞庭山官方旗舰店',
+    '江南贡泉': '洞庭山官方旗舰店',
+    '蘇泉': '蘇泉水饮旗舰店',
+    '虎丘': '虎丘官方旗舰店',
+    '碧螺泉': '洞庭山官方旗舰店',
+    '锌益': '洞庭山官方旗舰店',
+    '西施泉': '洞庭山官方旗舰店',
+    '江南名泉': '洞庭山官方旗舰店'
   };
 
   const RAW_PRODUCTS = [
@@ -3545,9 +3564,10 @@ ${r.script || '未填写'}
   function populateScriptProductSelect(selId) {
     const sel = document.getElementById(selId);
     const prods = (appData.v2 && appData.v2.products || []);
-    sel.innerHTML = '<option value="">不关联商品</option>' + prods.map(p =>
-      `<option value="${p.id}">${escapeHtml(p.name)}（${escapeHtml(p.brand)}）· ${escapeHtml(p.shop || '')}</option>`
-    ).join('');
+    sel.innerHTML = '<option value="">不关联商品</option>' + prods.map(p => {
+      const shops = (p.shops && p.shops.length) ? p.shops : [p.shop || '待维护'];
+      return `<option value="${p.id}">${escapeHtml(p.name)}（${escapeHtml(p.brand)}）· ${escapeHtml(shops.join(' / '))}</option>`;
+    }).join('');
   }
   function populateScriptVideoNeedSelect(selId, current) {
     const sel = document.getElementById(selId);
@@ -3577,7 +3597,8 @@ ${r.script || '未填写'}
     if (p.tier) parts.push('等级：' + p.tier);
     if (p.audience) parts.push('人群：' + p.audience);
     if (p.materialDir) parts.push('素材方向：' + p.materialDir);
-    parts.push('店铺：' + (p.shop || '待维护'));
+    const shops = (p.shops && p.shops.length) ? p.shops.join(' / ') : (p.shop || '待维护');
+    parts.push('店铺：' + shops);
     meta.innerHTML = '<i class="fa-solid fa-circle-info mr-1 text-brand-500"></i>' + parts.join(' · ');
     meta.classList.remove('hidden');
   }
@@ -3610,8 +3631,8 @@ ${r.script || '未填写'}
     const fStatus = statusSel.value;
     const filtered = scripts.filter(s => {
       const p = getSpProduct(s.productId);
-      const shop = p ? p.shop : '';
-      if (fShop && shop !== fShop) return false;
+      const shops = p ? ((p.shops && p.shops.length) ? p.shops : [p.shop || '']) : [];
+      if (fShop && !shops.includes(fShop)) return false;
       if (fStatus && s.status !== fStatus) return false;
       if (q) {
         const hay = (s.title + ' ' + (p ? p.name + p.brand : '') + ' ' + (s.audience || '') + ' ' + (s.scene || '') + ' ' + (s.videoDir || '')).toLowerCase();
@@ -3864,9 +3885,10 @@ ${r.script || '未填写'}
     const sel = document.getElementById('qc-product');
     if (!sel) return;
     const prods = (appData.v2 && appData.v2.products) || [];
-    sel.innerHTML = '<option value="">不关联商品</option>' + prods.map(p =>
-      `<option value="${p.id}">${p.id} · ${escapeHtml(p.name)}（${escapeHtml(p.brand)}）</option>`
-    ).join('');
+    sel.innerHTML = '<option value="">不关联商品</option>' + prods.map(p => {
+      const shops = (p.shops && p.shops.length) ? p.shops : [p.shop || '待维护'];
+      return `<option value="${p.id}">${p.id} · ${escapeHtml(p.name)}（${escapeHtml(p.brand)}）· ${escapeHtml(shops.join(' / '))}</option>`;
+    }).join('');
   }
   function qcVideoChange() {
     const vid = document.getElementById('qc-video').value;
@@ -4109,6 +4131,19 @@ ${r.script || '未填写'}
       }
     });
   }
+
+  // 修复 V2 商品店铺归属：将 shop/shops 按品牌和 SHOP_BRANDS 重新对齐，避免全部落到第一家店铺
+  function normalizeV2Products() {
+    if (!appData.v2 || !Array.isArray(appData.v2.products)) return;
+    let changed = false;
+    appData.v2.products.forEach(p => {
+      const correctShops = productShops(p);
+      const correctShop = primaryShopOfBrand(p.brand);
+      if (!p.shops || JSON.stringify(p.shops) !== JSON.stringify(correctShops)) { p.shops = correctShops; changed = true; }
+      if (p.shop !== correctShop) { p.shop = correctShop; changed = true; }
+    });
+    if (changed) saveData(appData);
+  }
   function fillLdSelects() {
     const shopSel = document.getElementById('ld-shop');
     shopSel.innerHTML = '<option value="">—</option>' + getShopOptions().map(s => `<option value="${s.id}">${escapeHtml(s.name)}</option>`).join('');
@@ -4212,6 +4247,7 @@ ${r.script || '未填写'}
     migrateV2(appData); // V2.0 数据层迁移（幂等，旧页面兼容）
     normalizeVideoRequests(); // 给视频需求补稳定 id，供脚本中心关联
     normalizeCreators(); // 给达人补稳定 id(CR) 并迁移团长 creatorIds，打通双向关联
+    normalizeV2Products(); // 修正商品店铺归属，确保 5 店商品都能被关联
     updateDate();
     renderTasks();
     // 如果是新的一天，自动刷新灵感
