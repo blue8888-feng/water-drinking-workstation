@@ -863,7 +863,7 @@
                 <th class="px-3 py-3 font-medium">达人</th><th class="px-3 py-3 font-medium">平台</th>
                 <th class="px-3 py-3 font-medium">地区</th><th class="px-3 py-3 font-medium">粉丝</th>
                 <th class="px-3 py-3 font-medium">佣金</th><th class="px-3 py-3 font-medium">状态</th>
-                <th class="px-3 py-3 font-medium">成交</th><th class="px-3 py-3 font-medium w-24">操作</th>
+                <th class="px-3 py-3 font-medium">成交</th><th class="px-3 py-3 font-medium">所属团长</th><th class="px-3 py-3 font-medium w-24">操作</th>
               </tr></thead>
               <tbody id="cr-table" class="divide-y divide-slate-100"></tbody>
             </table>
@@ -4012,9 +4012,12 @@ ${r.script || '未填写'}
     `;
     const tb = document.getElementById('cr-table');
     const statusColors = { '沟通中': 'slate', '已寄样': 'blue', '合作中': 'emerald', '已结束': 'gray', '终止': 'red' };
-    if (list.length === 0) { tb.innerHTML = '<tr><td colspan="8" class="px-3 py-10 text-center text-slate-300 text-sm">还没有达人，点「新增达人」</td></tr>'; }
+    const ldAll = getLeaders();
+    if (list.length === 0) { tb.innerHTML = '<tr><td colspan="9" class="px-3 py-10 text-center text-slate-300 text-sm">还没有达人，点「新增达人」</td></tr>'; }
     else {
-      tb.innerHTML = list.map((c, i) => `
+      tb.innerHTML = list.map((c, i) => {
+        const myLeaders = ldAll.filter(l => (l.creatorIds || []).includes(c.id)).map(l => l.name);
+        return `
         <tr class="hover:bg-slate-50">
           <td class="px-3 py-2 font-medium text-slate-800">${escapeHtml(c.name || '')}</td>
           <td class="px-3 py-2 text-xs">${escapeHtml(c.platform || '')}</td>
@@ -4023,11 +4026,13 @@ ${r.script || '未填写'}
           <td class="px-3 py-2 text-xs">${c.commission ? c.commission + '%' : '—'}</td>
           <td class="px-3 py-2"><span class="text-xs px-2 py-0.5 rounded-full bg-${statusColors[c.status] || 'slate'}-100 text-${statusColors[c.status] || 'slate'}-700">${c.status || '沟通中'}</span></td>
           <td class="px-3 py-2 text-xs">${fmtMoney(c.deals || 0)}</td>
+          <td class="px-3 py-2 text-xs text-slate-500">${myLeaders.length ? escapeHtml(myLeaders.join('、')) : '无'}</td>
           <td class="px-3 py-2">
             <button onclick="openCrModal(${i})" class="text-slate-400 hover:text-brand-600 mr-2"><i class="fa-solid fa-pen"></i></button>
             <button onclick="delCr(${i})" class="text-slate-300 hover:text-red-500"><i class="fa-solid fa-trash"></i></button>
           </td>
-        </tr>`).join('');
+        </tr>`;
+      }).join('');
     }
   }
   function openCrModal(i) {
@@ -4058,6 +4063,11 @@ ${r.script || '未填写'}
     document.getElementById('cr-modal').classList.remove('hidden');
   }
   function closeCrModal() { document.getElementById('cr-modal').classList.add('hidden'); }
+  function nextCreatorId() {
+    let max = 0;
+    (appData.creators || []).forEach(c => { const m = /^CR(\d+)$/.exec(c.id || ''); if (m) max = Math.max(max, parseInt(m[1], 10)); });
+    return 'CR' + String(max + 1).padStart(3, '0');
+  }
   function saveCr() {
     const i = document.getElementById('cr-id').value;
     const data = {
@@ -4071,7 +4081,8 @@ ${r.script || '未填写'}
       note: document.getElementById('cr-note').value.trim()
     };
     if (!appData.creators) appData.creators = [];
-    if (i === '') appData.creators.push(data); else appData.creators[i] = data;
+    if (i === '') { data.id = nextCreatorId(); appData.creators.push(data); }
+    else { data.id = (appData.creators[i] && appData.creators[i].id) || nextCreatorId(); appData.creators[i] = data; }
     saveData(appData); closeCrModal(); renderCreators();
   }
   function delCr(i) { if (confirm('删除该达人？')) { appData.creators.splice(i, 1); saveData(appData); renderCreators(); } }
@@ -4079,11 +4090,25 @@ ${r.script || '未填写'}
   // ---- 团长渠道管理（TZ 统一 ID，存 appData.v2.leaders）----
   function getLeaders() { return (appData.v2 && appData.v2.leaders) || []; }
   function getDrOptions() {
-    const v2 = (appData.v2 && appData.v2.creators) || [];
-    if (v2.length) return v2.map(d => ({ id: d.id, name: (d.info && d.info.name) || d.name || '' }));
-    return (appData.creators || []).map((c, i) => ({ id: 'idx' + i, name: c.name || '' }));
+    return (appData.creators || []).map(c => ({ id: c.id || '', name: c.name || '' }));
   }
   function getShopOptions() { return (appData.shops || []).map(s => ({ id: s.id, name: s.name })); }
+  // 给达人补稳定 id（CR00x），并迁移团长 creatorIds 的 DR/idx 旧标识 → CR，保证双向关联一致
+  function normalizeCreators() {
+    const cs = appData.creators || [];
+    if (!cs.length) return;
+    cs.forEach((c, idx) => { if (!c.id) c.id = 'CR' + String(idx + 1).padStart(3, '0'); });
+    const leaders = (appData.v2 && appData.v2.leaders) || [];
+    leaders.forEach(l => {
+      if (l.creatorIds && l.creatorIds.length) {
+        l.creatorIds = l.creatorIds.map(id => {
+          let m = /^DR(\d+)$/.exec(id); if (m) return 'CR' + m[1];
+          m = /^idx(\d+)$/.exec(id); if (m) return 'CR' + String(parseInt(m[1], 10) + 1).padStart(3, '0');
+          return id;
+        });
+      }
+    });
+  }
   function fillLdSelects() {
     const shopSel = document.getElementById('ld-shop');
     shopSel.innerHTML = '<option value="">—</option>' + getShopOptions().map(s => `<option value="${s.id}">${escapeHtml(s.name)}</option>`).join('');
@@ -4186,6 +4211,7 @@ ${r.script || '未填写'}
     await tryLoadFromHash();
     migrateV2(appData); // V2.0 数据层迁移（幂等，旧页面兼容）
     normalizeVideoRequests(); // 给视频需求补稳定 id，供脚本中心关联
+    normalizeCreators(); // 给达人补稳定 id(CR) 并迁移团长 creatorIds，打通双向关联
     updateDate();
     renderTasks();
     // 如果是新的一天，自动刷新灵感
