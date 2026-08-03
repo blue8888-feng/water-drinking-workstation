@@ -3731,7 +3731,8 @@ ${r.script || '未填写'}
   };
 
   function canonicalizeCockpitRow(row) {
-    const out = {};
+    // 保留原始字段，同时把常见别名统一成标准字段名，便于后续 pick
+    const out = Object.assign({}, row);
     const normalizedMap = {};
     Object.keys(COCKPIT_FIELD_ALIASES).forEach(std => {
       COCKPIT_FIELD_ALIASES[std].forEach(alias => { normalizedMap[normalizeHeader(alias)] = std; });
@@ -3740,9 +3741,8 @@ ${r.script || '未填写'}
       const v = row[k];
       if (v === undefined || v === null || v === '') return;
       const nk = normalizeHeader(k);
-      const std = normalizedMap[nk] || k;
-      // 如果多个别名指向同一标准字段，保留第一个非空值
-      if (out[std] === undefined || out[std] === '') out[std] = v;
+      const std = normalizedMap[nk];
+      if (std && (out[std] === undefined || out[std] === '')) out[std] = v;
     });
     return out;
   }
@@ -3932,6 +3932,8 @@ ${r.script || '未填写'}
     const preview = document.getElementById('cp-import-preview');
     if (!appData.shops) appData.shops = [];
     if (!appData.dailyRecords) appData.dailyRecords = [];
+    rows = (rows || []).map(canonicalizeCockpitRow).filter(r => Object.keys(r).length > 0);
+    if (!rows.length) { preview.innerHTML = '<span class="text-red-500">未解析到有效数据，请检查表头或勾选「表格没有表头」。</span>'; return; }
     const sel = document.getElementById('cp-import-shop');
     const defaultId = sel ? sel.value : (appData.shops[0] && appData.shops[0].id);
     const groups = {};
