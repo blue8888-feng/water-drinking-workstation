@@ -736,6 +736,43 @@
         <h4 class="font-semibold text-slate-700 mb-3"><i class="fa-solid fa-store mr-1.5 text-brand-600"></i>5 家店铺经营</h4>
         <div id="cockpit-shops" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8"></div>
 
+        <h4 class="font-semibold text-slate-700 mb-3"><i class="fa-solid fa-ranking-star mr-1.5 text-brand-600"></i>店铺排名</h4>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+            <div class="flex items-center justify-between mb-3">
+              <h4 class="font-semibold text-slate-700"><i class="fa-solid fa-calendar-day mr-1.5 text-blue-500"></i>每日排名</h4>
+              <input type="date" id="cp-day-rank-date" onchange="renderDayRank()" class="text-sm border border-slate-200 rounded-lg px-2 py-1">
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead><tr class="bg-slate-50 text-left text-xs text-slate-500 uppercase">
+                  <th class="px-2 py-2 font-medium">排名</th><th class="px-2 py-2 font-medium">店铺</th>
+                  <th class="px-2 py-2 font-medium w-24">GMV</th><th class="px-2 py-2 font-medium w-20">消耗</th>
+                  <th class="px-2 py-2 font-medium w-16">ROI</th><th class="px-2 py-2 font-medium w-16">完成率</th>
+                </tr></thead>
+                <tbody id="cp-day-rank"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+            <div class="flex items-center justify-between mb-3">
+              <h4 class="font-semibold text-slate-700"><i class="fa-solid fa-calendar-days mr-1.5 text-emerald-500"></i>本月排名</h4>
+              <input type="month" id="cp-month-rank-month" onchange="renderMonthRank()" class="text-sm border border-slate-200 rounded-lg px-2 py-1">
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead><tr class="bg-slate-50 text-left text-xs text-slate-500 uppercase">
+                  <th class="px-2 py-2 font-medium">排名</th><th class="px-2 py-2 font-medium">店铺</th>
+                  <th class="px-2 py-2 font-medium w-24">GMV</th><th class="px-2 py-2 font-medium w-20">消耗</th>
+                  <th class="px-2 py-2 font-medium w-16">ROI</th><th class="px-2 py-2 font-medium w-16">完成率</th>
+                </tr></thead>
+                <tbody id="cp-month-rank"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
             <div class="flex items-center justify-between mb-3">
@@ -1222,6 +1259,8 @@
         { id: 'hq', name: '虎丘官方旗舰店', gmv: 0, target: 50000, spend: 0, orders: 0 }
       ],
       productRank: [],
+      // ===== 运营驾驶舱日数据（按日期+店铺存储，用于每日/月排名）=====
+      dailyRecords: [],
       // ===== 视频需求池 =====
       videoRequests: [],
       // ===== 千川投放计划 =====
@@ -3512,7 +3551,69 @@ ${r.script || '未填写'}
     }).join('');
 
     renderRank();
+    initRankDatePickers();
+    renderDayRank();
+    renderMonthRank();
     renderAlerts();
+  }
+
+  function initRankDatePickers() {
+    const dayInput = document.getElementById('cp-day-rank-date');
+    const monthInput = document.getElementById('cp-month-rank-month');
+    if (!dayInput || !monthInput) return;
+    if (!appData.dailyRecords) appData.dailyRecords = [];
+    const dates = appData.dailyRecords.map(r => r.date).filter(Boolean).sort((a, b) => b.localeCompare(a));
+    const latest = dates[0];
+    const today = new Date().toISOString().slice(0, 10);
+    const thisMonth = today.slice(0, 7);
+    if (!dayInput.value) dayInput.value = latest || today;
+    if (!monthInput.value) monthInput.value = thisMonth;
+  }
+
+  function renderDayRank() {
+    const tb = document.getElementById('cp-day-rank');
+    const dayInput = document.getElementById('cp-day-rank-date');
+    if (!tb) return;
+    const dateStr = dayInput && dayInput.value ? dayInput.value : new Date().toISOString().slice(0, 10);
+    const agg = getDailyAgg(dateStr);
+    const rows = Object.values(agg).map(x => {
+      const comp = x.target ? (x.gmv / x.target * 100) : 0;
+      const roi = x.spend ? (x.gmv / x.spend) : 0;
+      return Object.assign({}, x, { comp, roi });
+    }).sort((a, b) => b.gmv - a.gmv);
+    if (!rows.length) { tb.innerHTML = '<tr><td colspan="6" class="px-2 py-6 text-center text-slate-300 text-xs">该日期暂无数据，请先导入店铺日报</td></tr>'; return; }
+    tb.innerHTML = rows.map((r, i) => `
+      <tr class="border-t border-slate-100">
+        <td class="px-2 py-2 text-xs font-semibold ${i < 3 ? 'text-amber-600' : 'text-slate-500'}">${i + 1}</td>
+        <td class="px-2 py-2 text-xs">${escapeHtml(r.name)}</td>
+        <td class="px-2 py-2 text-xs text-right font-medium text-brand-700">${fmtMoney(r.gmv)}</td>
+        <td class="px-2 py-2 text-xs text-right text-orange-500">${fmtMoney(r.spend)}</td>
+        <td class="px-2 py-2 text-xs text-right ${r.roi >= 2 ? 'text-emerald-600' : (r.roi > 0 ? 'text-red-500' : 'text-slate-400')}">${r.roi ? r.roi.toFixed(2) : '—'}</td>
+        <td class="px-2 py-2 text-xs text-right ${r.comp >= 60 ? 'text-emerald-600' : 'text-amber-600'}">${Math.round(r.comp)}%</td>
+      </tr>`).join('');
+  }
+
+  function renderMonthRank() {
+    const tb = document.getElementById('cp-month-rank');
+    const monthInput = document.getElementById('cp-month-rank-month');
+    if (!tb) return;
+    const ym = monthInput && monthInput.value ? monthInput.value : new Date().toISOString().slice(0, 7);
+    const agg = getMonthlyAgg(ym);
+    const rows = Object.values(agg).map(x => {
+      const comp = x.target ? (x.gmv / x.target * 100) : 0;
+      const roi = x.spend ? (x.gmv / x.spend) : 0;
+      return Object.assign({}, x, { comp, roi });
+    }).sort((a, b) => b.gmv - a.gmv);
+    if (!rows.length) { tb.innerHTML = '<tr><td colspan="6" class="px-2 py-6 text-center text-slate-300 text-xs">该月暂无数据，请先导入店铺日报</td></tr>'; return; }
+    tb.innerHTML = rows.map((r, i) => `
+      <tr class="border-t border-slate-100">
+        <td class="px-2 py-2 text-xs font-semibold ${i < 3 ? 'text-amber-600' : 'text-slate-500'}">${i + 1}</td>
+        <td class="px-2 py-2 text-xs">${escapeHtml(r.name)}</td>
+        <td class="px-2 py-2 text-xs text-right font-medium text-brand-700">${fmtMoney(r.gmv)}</td>
+        <td class="px-2 py-2 text-xs text-right text-orange-500">${fmtMoney(r.spend)}</td>
+        <td class="px-2 py-2 text-xs text-right ${r.roi >= 2 ? 'text-emerald-600' : (r.roi > 0 ? 'text-red-500' : 'text-slate-400')}">${r.roi ? r.roi.toFixed(2) : '—'}</td>
+        <td class="px-2 py-2 text-xs text-right ${r.comp >= 60 ? 'text-emerald-600' : 'text-amber-600'}">${Math.round(r.comp)}%</td>
+      </tr>`).join('');
   }
 
   function renderRank() {
@@ -3601,6 +3702,51 @@ ${r.script || '未填写'}
     '日期','直播间成交金额','商品卡成交金额','老客户分析','成交金额(元)','实际成交金额(扣除退款)','退款金额','成交订单数','成交人数（去除刷单）','新客人数','老客人数','老客占比','商品访客数（实际为曝光）','商品点击人数（实际为访客）','商品点击率','支付转化率','成交客单价(元)','刷单金额','推广费','推广成交','推广费占比','ROI','商品卡曝光人数','商品卡点击人数','商品点击率'
   ];
 
+  // 抖音罗盘日报字段别名映射：把用户表格里各种写法统一成标准字段名
+  const COCKPIT_FIELD_ALIASES = {
+    '日期': ['日期','date','时间','data_date','统计日期'],
+    '成交金额(元)': ['成交金额(元)','成交金额','成交总额','GMV','gmv','支付金额','成交额','成交金额/元','销售额'],
+    '实际成交金额(扣除退款)': ['实际成交金额(扣除退款)','实际成交金额','成交金额(扣除退款)','扣除退款','实际成交','实付金额','实付成交金额'],
+    '直播间成交金额': ['直播间成交金额','直播成交','直播间GMV','直播成交金额'],
+    '商品卡成交金额': ['商品卡成交金额','商品卡成交','商品卡GMV','商品卡成交金额'],
+    '老客户分析': ['老客户分析'],
+    '退款金额': ['退款金额','退款','退款额'],
+    '成交订单数': ['成交订单数','订单数','订单量','成交单数','单数'],
+    '成交人数（去除刷单）': ['成交人数（去除刷单）','成交人数','成交用户数','成交人数(去除刷单)'],
+    '新客人数': ['新客人数','新客数','新客'],
+    '老客人数': ['老客人数','老客数','老客'],
+    '老客占比': ['老客占比','老客比例','老客户占比'],
+    '商品访客数（实际为曝光）': ['商品访客数（实际为曝光）','商品访客数','曝光人数','曝光量','曝光'],
+    '商品点击人数（实际为访客）': ['商品点击人数（实际为访客）','商品点击人数','访客人数','访客数','点击人数'],
+    '商品点击率': ['商品点击率','点击率'],
+    '支付转化率': ['支付转化率','转化率','下单转化率'],
+    '成交客单价(元)': ['成交客单价(元)','成交客单价','客单价'],
+    '刷单金额': ['刷单金额','刷单','虚假金额'],
+    '推广费': ['推广费','推广费用','投放费用','广告费','消耗','推广消耗','投放消耗'],
+    '推广成交': ['推广成交','推广成交额','推广成交金额'],
+    '推广费占比': ['推广费占比','推广占比','消耗占比','推广费用占比'],
+    'ROI': ['ROI','roi','投入产出比'],
+    '商品卡曝光人数': ['商品卡曝光人数','商品卡曝光'],
+    '商品卡点击人数': ['商品卡点击人数','商品卡点击']
+  };
+
+  function canonicalizeCockpitRow(row) {
+    const out = {};
+    const normalizedMap = {};
+    Object.keys(COCKPIT_FIELD_ALIASES).forEach(std => {
+      COCKPIT_FIELD_ALIASES[std].forEach(alias => { normalizedMap[normalizeHeader(alias)] = std; });
+    });
+    Object.keys(row || {}).forEach(k => {
+      const v = row[k];
+      if (v === undefined || v === null || v === '') return;
+      const nk = normalizeHeader(k);
+      const std = normalizedMap[nk] || k;
+      // 如果多个别名指向同一标准字段，保留第一个非空值
+      if (out[std] === undefined || out[std] === '') out[std] = v;
+    });
+    return out;
+  }
+
   function openCpImportModal() {
     document.getElementById('cp-import-file').value = '';
     document.getElementById('cp-import-text').value = '';
@@ -3643,7 +3789,7 @@ ${r.script || '未填写'}
       return arr.slice(startIdx).map(row => {
         const obj = {};
         COCKPIT_FIELD_ORDER.forEach((k, i) => { if (row[i] !== undefined && row[i] !== '') obj[k] = row[i]; });
-        return obj;
+        return canonicalizeCockpitRow(obj);
       });
     }
     const headers = (arr[startIdx] || []).map(h => normalizeHeader(h));
@@ -3660,9 +3806,31 @@ ${r.script || '未填写'}
         obj[key] = v;
         hasValue = true;
       });
-      if (hasValue) rows.push(obj);
+      if (hasValue) rows.push(canonicalizeCockpitRow(obj));
     }
     return rows;
+  }
+
+  function parseDateStr(v) {
+    if (!v) return '';
+    const s = String(v).trim();
+    // 支持 2026/08/03、2026-08-03、2026.08.03、2026年08月03日、以及 Excel 序列号数字
+    if (/^\d{4}[-/\\.]\d{1,2}[-/\\.]\d{1,2}$/.test(s)) return s.replace(/[\\/\.]/g, '-').replace(/-(\d\b)/g, '-0$1');
+    if (/^\d{4}年\d{1,2}月\d{1,2}日?$/.test(s)) return s.replace(/年|月/g, '-').replace(/日?$/, '');
+    if (/^\d{1,2}[-/\\.]\d{1,2}$/.test(s)) {
+      const y = new Date().getFullYear();
+      return y + '-' + s.replace(/[\\/\.]/g, '-').replace(/-(\d\b)/g, '-0$1');
+    }
+    if (/^\d+(\.\d+)?$/.test(s)) {
+      // Excel 日期序列号转 YYYY-MM-DD
+      const n = Number(s);
+      const epoch = new Date(1899, 11, 30);
+      const d = new Date(epoch.getTime() + n * 86400000);
+      if (!isNaN(d.getTime())) return d.toISOString().slice(0, 10);
+    }
+    const d = new Date(s);
+    if (!isNaN(d.getTime())) return d.toISOString().slice(0, 10);
+    return '';
   }
 
   function importCockpit() {
@@ -3710,9 +3878,60 @@ ${r.script || '未填写'}
            appData.shops.find(s => s.name && (s.name.includes(hint) || hint.includes(s.name)));
   }
 
+  function getDailyAgg(dateStr) {
+    if (!appData.dailyRecords) appData.dailyRecords = [];
+    const recs = appData.dailyRecords.filter(r => r.date === dateStr);
+    const map = {};
+    recs.forEach(r => {
+      const s = (appData.shops || []).find(x => x.id === r.shopId);
+      map[r.shopId] = {
+        shopId: r.shopId,
+        name: s ? s.name : r.shopName,
+        gmv: Number(r.gmv) || 0,
+        spend: Number(r.spend) || 0,
+        orders: Number(r.orders) || 0,
+        target: Number(s && s.target) || 0,
+        metrics: r.metrics || {}
+      };
+    });
+    return map;
+  }
+
+  function getMonthlyAgg(yearMonth) {
+    if (!appData.dailyRecords) appData.dailyRecords = [];
+    const map = {};
+    appData.dailyRecords.forEach(r => {
+      if (!r.date || !r.date.startsWith(yearMonth)) return;
+      if (!map[r.shopId]) {
+        const s = (appData.shops || []).find(x => x.id === r.shopId);
+        map[r.shopId] = { shopId: r.shopId, name: s ? s.name : r.shopName, gmv: 0, spend: 0, orders: 0, target: Number(s && s.target) || 0 };
+      }
+      map[r.shopId].gmv += Number(r.gmv) || 0;
+      map[r.shopId].spend += Number(r.spend) || 0;
+      map[r.shopId].orders += Number(r.orders) || 0;
+    });
+    return map;
+  }
+
+  function refreshShopCurrentFromDaily() {
+    if (!appData.shops) appData.shops = [];
+    if (!appData.dailyRecords) appData.dailyRecords = [];
+    appData.shops.forEach(s => {
+      const recs = appData.dailyRecords.filter(r => r.shopId === s.id).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+      const latest = recs[0];
+      if (latest) {
+        s.gmv = Number(latest.gmv) || 0;
+        s.spend = Number(latest.spend) || 0;
+        s.orders = Number(latest.orders) || 0;
+        s.metrics = latest.metrics || {};
+      }
+    });
+  }
+
   function applyCockpitStores(rows) {
     const preview = document.getElementById('cp-import-preview');
     if (!appData.shops) appData.shops = [];
+    if (!appData.dailyRecords) appData.dailyRecords = [];
     const sel = document.getElementById('cp-import-shop');
     const defaultId = sel ? sel.value : (appData.shops[0] && appData.shops[0].id);
     const groups = {};
@@ -3725,62 +3944,45 @@ ${r.script || '未填写'}
       if (!groups[shop.id]) groups[shop.id] = { shop, rows: [] };
       groups[shop.id].rows.push(r);
     });
-    if (!Object.keys(groups).length) { preview.textContent = '未匹配到任何店铺，请检查表格或选择正确的导入店铺。'; return; }
+    if (!Object.keys(groups).length) { preview.innerHTML = '<span class="text-red-500">未匹配到任何店铺，请检查表格或选择正确的导入店铺。</span>'; return; }
 
-    let updated = 0;
+    let updated = 0, recordCount = 0;
     const details = [];
+    const affectedDates = new Set();
     Object.values(groups).forEach(g => {
       const { shop, rows } = g;
-      if (rows.length === 1) {
-        const r = rows[0];
-        shop.metrics = Object.assign({}, r);
-        const gmv = pick(r, ['成交金额(元)', '实际成交金额(扣除退款)', '直播间成交金额', '商品卡成交金额']);
-        if (gmv !== '') shop.gmv = normMoney(gmv);
-        const spend = pick(r, ['推广费', '推广费用', '投放费用']);
-        if (spend !== '') shop.spend = normMoney(spend);
-        const orders = pick(r, ['成交订单数', '订单数', '订单']);
-        if (orders !== '') shop.orders = normMoney(orders);
-        const target = pick(r, ['目标', '目标GMV', '目标销售额', '目标金额']);
-        if (target !== '') shop.target = normMoney(target);
-      } else {
-        const sums = {};
-        let dateStr = '';
-        rows.forEach(r => {
-          Object.keys(r).forEach(k => {
-            const v = r[k];
-            if (v === undefined || v === null || v === '') return;
-            if (/日期/.test(k)) { if (!dateStr) dateStr = String(v); return; }
-            if (/率|占比|单价|ROI/i.test(k)) return;
-            const n = normMoney(v);
-            if (!isNaN(n)) sums[k] = (sums[k] || 0) + n;
-          });
-        });
-        shop.metrics = Object.assign({ 日期: dateStr }, sums);
-        const totalGmv = sums['成交金额(元)'] || sums['实际成交金额(扣除退款)'] || 0;
-        const totalOrders = sums['成交订单数'] || 0;
-        const totalCustomers = sums['成交人数（去除刷单）'] || 0;
-        const oldCustomers = sums['老客人数'] || 0;
-        const visitors = sums['商品访客数（实际为曝光）'] || 0;
-        const clicks = sums['商品点击人数（实际为访客）'] || 0;
-        const spend = sums['推广费'] || 0;
-        const pcExposure = sums['商品卡曝光人数'] || 0;
-        const pcClicks = sums['商品卡点击人数'] || 0;
-        if (totalCustomers) shop.metrics['老客占比'] = oldCustomers / totalCustomers;
-        if (visitors) shop.metrics['商品点击率'] = clicks / visitors;
-        if (clicks) shop.metrics['支付转化率'] = totalOrders / clicks;
-        if (totalGmv) shop.metrics['推广费占比'] = spend / totalGmv;
-        if (spend) shop.metrics['ROI'] = totalGmv / spend;
-        if (totalOrders) shop.metrics['成交客单价(元)'] = totalGmv / totalOrders;
-        if (pcExposure) shop.metrics['商品点击率_1'] = pcClicks / pcExposure;
-        shop.gmv = totalGmv;
-        shop.spend = spend;
-        shop.orders = totalOrders;
-      }
+      rows.forEach(r => {
+        const dateStr = parseDateStr(pick(r, ['日期'])) || new Date().toISOString().slice(0, 10);
+        affectedDates.add(dateStr);
+        const metrics = Object.assign({}, r);
+        const gmv = normMoney(pick(r, ['成交金额(元)', '实际成交金额(扣除退款)', '直播间成交金额', '商品卡成交金额']));
+        const spend = normMoney(pick(r, ['推广费']));
+        const orders = normMoney(pick(r, ['成交订单数']));
+        const customers = normMoney(pick(r, ['成交人数（去除刷单）']));
+        const oldCustomers = normMoney(pick(r, ['老客人数']));
+        const visitors = normMoney(pick(r, ['商品访客数（实际为曝光）']));
+        const clicks = normMoney(pick(r, ['商品点击人数（实际为访客）']));
+        const pcExposure = normMoney(pick(r, ['商品卡曝光人数']));
+        const pcClicks = normMoney(pick(r, ['商品卡点击人数']));
+        if (customers) metrics['老客占比'] = oldCustomers / customers;
+        if (visitors) metrics['商品点击率'] = clicks / visitors;
+        if (clicks) metrics['支付转化率'] = orders / clicks;
+        if (gmv) metrics['推广费占比'] = spend / gmv;
+        if (spend) metrics['ROI'] = gmv / spend;
+        if (orders) metrics['成交客单价(元)'] = gmv / orders;
+        if (pcExposure) metrics['商品卡点击率'] = pcClicks / pcExposure;
+        const record = { date: dateStr, shopId: shop.id, shopName: shop.name, metrics, gmv, spend, orders };
+        const idx = appData.dailyRecords.findIndex(rec => rec.shopId === shop.id && rec.date === dateStr);
+        if (idx >= 0) appData.dailyRecords[idx] = record;
+        else appData.dailyRecords.push(record);
+        recordCount++;
+      });
       updated++;
       details.push('已更新：' + shop.name + '（' + rows.length + ' 行）');
     });
+    refreshShopCurrentFromDaily();
     saveData(appData); renderCockpit();
-    preview.innerHTML = `<div class="text-emerald-600 font-semibold"><i class="fa-solid fa-circle-check mr-1"></i>导入完成：更新 <b>${updated}</b> 个店铺，跳过 <b>${skipped}</b> 行。</div>` +
+    preview.innerHTML = `<div class="text-emerald-600 font-semibold"><i class="fa-solid fa-circle-check mr-1"></i>导入完成：更新 <b>${updated}</b> 个店铺，<b>${recordCount}</b> 条日数据（日期：${Array.from(affectedDates).join('、') || '今日'}）。</div>` +
       (details.length ? '<div class="mt-2 text-slate-600">' + details.slice(0, 12).map(d => '· ' + escapeHtml(d)).join('<br>') + '</div>' : '');
   }
 
