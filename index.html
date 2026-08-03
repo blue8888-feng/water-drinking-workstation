@@ -882,11 +882,16 @@
         <div class="flex items-center justify-between mb-5 flex-wrap gap-3">
           <div>
             <h3 class="text-lg font-semibold text-slate-800">团长渠道管理</h3>
-            <p class="text-sm text-slate-500 mt-1">招商团长 / 机构 · 服务费 · 对接达人 / 店铺 · 成交</p>
+            <p class="text-sm text-slate-500 mt-1">招商团长 / 机构 · 服务费 · 对接商品 / 达人 / 店铺 · 成交</p>
           </div>
-          <button onclick="openLdModal()" class="text-sm px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-lg transition-colors flex items-center">
-            <i class="fa-solid fa-plus mr-1.5"></i>新增团长
-          </button>
+          <div class="flex gap-2">
+            <button onclick="openLdImportModal()" class="text-sm px-4 py-2 bg-white border border-slate-200 hover:border-brand-300 text-slate-700 rounded-lg transition-colors flex items-center">
+              <i class="fa-solid fa-file-import mr-1.5 text-brand-600"></i>导入订单
+            </button>
+            <button onclick="openLdModal()" class="text-sm px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-lg transition-colors flex items-center">
+              <i class="fa-solid fa-plus mr-1.5"></i>新增团长
+            </button>
+          </div>
         </div>
 
         <div id="ld-summary" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5"></div>
@@ -897,11 +902,34 @@
               <thead><tr class="bg-slate-50 text-left text-xs text-slate-500 uppercase">
                 <th class="px-3 py-3 font-medium">团长 / 机构</th><th class="px-3 py-3 font-medium">平台</th>
                 <th class="px-3 py-3 font-medium">招商类目</th><th class="px-3 py-3 font-medium">服务费</th>
-                <th class="px-3 py-3 font-medium">对接店铺</th><th class="px-3 py-3 font-medium">对接达人</th>
-                <th class="px-3 py-3 font-medium">状态</th><th class="px-3 py-3 font-medium">成交</th><th class="px-3 py-3 font-medium w-24">操作</th>
+                <th class="px-3 py-3 font-medium">对接店铺</th><th class="px-3 py-3 font-medium">对接商品</th>
+                <th class="px-3 py-3 font-medium">对接达人</th><th class="px-3 py-3 font-medium">状态</th>
+                <th class="px-3 py-3 font-medium">成交</th><th class="px-3 py-3 font-medium w-24">操作</th>
               </tr></thead>
               <tbody id="ld-table" class="divide-y divide-slate-100"></tbody>
             </table>
+          </div>
+        </div>
+
+        <div id="ld-orders-wrap" class="mt-5 hidden">
+          <div class="flex items-center justify-between mb-3">
+            <h4 class="text-sm font-semibold text-slate-700 flex items-center gap-2"><i class="fa-solid fa-receipt text-brand-600"></i>导入订单聚合</h4>
+            <span class="text-xs text-slate-400">按「出单机构」汇总，机构名与团长名匹配时显示关联</span>
+          </div>
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead><tr class="bg-slate-50 text-left text-xs text-slate-500 uppercase">
+                  <th class="px-3 py-3 font-medium">出单机构</th>
+                  <th class="px-3 py-3 font-medium">订单数</th>
+                  <th class="px-3 py-3 font-medium">支付金额</th>
+                  <th class="px-3 py-3 font-medium">预估服务费</th>
+                  <th class="px-3 py-3 font-medium">实际服务费</th>
+                  <th class="px-3 py-3 font-medium">结算金额</th>
+                </tr></thead>
+                <tbody id="ld-orders-table" class="divide-y divide-slate-100"></tbody>
+              </table>
+            </div>
           </div>
         </div>
       </section>
@@ -1032,14 +1060,37 @@
               <div><label class="text-xs text-slate-500">状态</label><select id="ld-status" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm">
                 <option>沟通中</option><option>合作中</option><option>已暂停</option><option>已结束</option></select></div>
             </div>
+            <div><label class="text-xs text-slate-500">对接商品 <span class="text-slate-400 font-normal">（多选，关联 SP 商品）</span></label>
+              <select id="ld-products" multiple class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm h-24"></select></div>
             <div><label class="text-xs text-slate-500">对接达人 <span class="text-slate-400 font-normal">（多选，关联 DR 达人）</span></label>
               <select id="ld-creators" multiple class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm h-24"></select></div>
-            <div><label class="text-xs text-slate-500">成交</label><input id="ld-deals" type="number" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"></div>
+            <div class="grid grid-cols-2 gap-3">
+              <div><label class="text-xs text-slate-500">成交</label><input id="ld-deals" type="number" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"></div>
+              <div><label class="text-xs text-slate-500">服务费收入</label><input id="ld-fee-income" type="number" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"></div>
+            </div>
             <div><label class="text-xs text-slate-500">备注</label><textarea id="ld-note" rows="2" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"></textarea></div>
           </div>
           <div class="flex gap-2 mt-5">
             <button onclick="saveLd()" class="flex-1 px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-lg">保存</button>
             <button onclick="closeLdModal()" class="px-4 py-2.5 text-slate-500 hover:text-slate-700 rounded-lg">取消</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 团长订单导入弹窗 -->
+      <div id="ld-import-modal" class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onclick="if(event.target===this)closeLdImportModal()">
+        <div class="bg-white rounded-2xl p-6 w-full max-w-3xl shadow-xl max-h-[90vh] overflow-y-auto">
+          <h3 class="text-lg font-bold text-slate-800 mb-4"><i class="fa-solid fa-file-import mr-1.5 text-brand-600"></i>导入团长订单</h3>
+          <p class="text-xs text-slate-500 mb-2">支持 CSV 文件上传或粘贴 CSV 文本。按「出单机构」自动关联团长；订单 id 重复会自动去重。</p>
+          <div class="space-y-3">
+            <div><input id="ld-import-file" type="file" accept=".csv,.txt" class="w-full text-sm text-slate-600"></div>
+            <div><label class="text-xs text-slate-500">CSV 内容 <span class="text-slate-400">（第一行为表头）</span></label>
+              <textarea id="ld-import-text" rows="8" placeholder="订单id,商品名称,商品id,订单状态,超时未结算原因,出单机构,支付金额,服务费率,预估服务费收入,结算金额,实际服务费收入,付款时间,收货时间,结算时间,尾款支付时间,定金金额,店铺id,店铺名称,商品数量,团长活动id,订单来源,支付补贴,平台补贴,达人补贴,运费,税费,运费补贴,计划类型,商品来源,订单来源,订单类型" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-mono"></textarea></div>
+            <div id="ld-import-preview" class="text-xs text-slate-500"></div>
+          </div>
+          <div class="flex gap-2 mt-5">
+            <button onclick="importLeaderOrders()" class="flex-1 px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-lg">导入</button>
+            <button onclick="closeLdImportModal()" class="px-4 py-2.5 text-slate-500 hover:text-slate-700 rounded-lg">取消</button>
           </div>
         </div>
       </div>
@@ -1132,7 +1183,7 @@
     const model = {
       version: 2,
       migratedAt: new Date().toISOString(),
-      products: [], scripts: [], videos: [], qianchuan: [], creators: [], leaders: []
+      products: [], scripts: [], videos: [], qianchuan: [], creators: [], leaders: [], leaderOrders: []
     };
 
     // 1) 商品 SP001…（PRODUCTS 基础目录 + productEdits 编辑项）
@@ -1274,7 +1325,7 @@
     if (tabName === 'videopool') renderVideoPool();
     if (tabName === 'qianchuan') renderQianchuan();
     if (tabName === 'creators') renderCreators();
-    if (tabName === 'leaders') renderLeaders();
+    if (tabName === 'leaders') { renderLeaders(); renderLeaderOrders(); }
     if (tabName === 'review') { renderReviewHistory(); fillReviewDefaults(); }
     if (tabName === 'memo') initMemoSection();
     if (tabName === 'products') renderProducts();
@@ -4238,9 +4289,14 @@ ${r.script || '未填写'}
     });
     if (changed) saveData(appData);
   }
+  function getSpOptions() {
+    return ((appData.v2 && appData.v2.products) || []).map(p => ({ id: p.id || '', name: (p.name || '') + (p.brand ? `（${p.brand}）` : '') }));
+  }
   function fillLdSelects() {
     const shopSel = document.getElementById('ld-shop');
     shopSel.innerHTML = '<option value="">—</option>' + getShopOptions().map(s => `<option value="${s.id}">${escapeHtml(s.name)}</option>`).join('');
+    const prodSel = document.getElementById('ld-products');
+    prodSel.innerHTML = getSpOptions().map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
     const crSel = document.getElementById('ld-creators');
     crSel.innerHTML = getDrOptions().map(d => `<option value="${d.id}">${escapeHtml(d.name)}</option>`).join('');
   }
@@ -4248,18 +4304,20 @@ ${r.script || '未填写'}
     const list = getLeaders();
     const coop = list.filter(l => l.status === '合作中').length;
     const totalDeals = list.reduce((s, x) => s + (Number(x.deals) || 0), 0);
+    const totalFeeIncome = list.reduce((s, x) => s + (Number(x.feeIncome) || 0), 0);
     const avgFee = list.length ? (list.reduce((s, x) => s + (Number(x.fee) || 0), 0) / list.length).toFixed(1) : 0;
     document.getElementById('ld-summary').innerHTML = `
       ${card('团长总数', list.length, 'fa-network-wired', 'text-brand-600')}
       ${card('合作中', coop, 'fa-handshake', 'text-emerald-600')}
       ${card('总成交', fmtMoney(totalDeals), 'fa-yen-sign', 'text-orange-500')}
-      ${card('平均服务费', avgFee + '%', 'fa-percent', 'text-indigo-500')}
+      ${card('服务费收入', fmtMoney(totalFeeIncome), 'fa-coins', 'text-indigo-500')}
     `;
     const tb = document.getElementById('ld-table');
     const statusColors = { '沟通中': 'slate', '合作中': 'emerald', '已暂停': 'amber', '已结束': 'gray' };
     const shopName = id => (appData.shops || []).find(s => s.id === id)?.name || '—';
+    const prodName = id => { const o = getSpOptions().find(p => p.id === id); return o ? o.name : ''; };
     const drName = id => { const o = getDrOptions().find(d => d.id === id); return o ? o.name : ''; };
-    if (list.length === 0) { tb.innerHTML = '<tr><td colspan="9" class="px-3 py-10 text-center text-slate-300 text-sm">还没有团长，点「新增团长」</td></tr>'; }
+    if (list.length === 0) { tb.innerHTML = '<tr><td colspan="10" class="px-3 py-10 text-center text-slate-300 text-sm">还没有团长，点「新增团长」</td></tr>'; }
     else {
       tb.innerHTML = list.map((l, i) => `
         <tr class="hover:bg-slate-50">
@@ -4268,6 +4326,7 @@ ${r.script || '未填写'}
           <td class="px-3 py-2 text-xs text-slate-500">${escapeHtml(l.category || '—')}</td>
           <td class="px-3 py-2 text-xs">${l.fee ? l.fee + '%' : '—'}</td>
           <td class="px-3 py-2 text-xs">${shopName(l.shop)}</td>
+          <td class="px-3 py-2 text-xs text-slate-500">${(l.productIds || []).map(prodName).filter(Boolean).join('、') || '—'}</td>
           <td class="px-3 py-2 text-xs text-slate-500">${(l.creatorIds || []).map(drName).filter(Boolean).join('、') || '—'}</td>
           <td class="px-3 py-2"><span class="text-xs px-2 py-0.5 rounded-full bg-${statusColors[l.status] || 'slate'}-100 text-${statusColors[l.status] || 'slate'}-700">${l.status || '沟通中'}</span></td>
           <td class="px-3 py-2 text-xs">${fmtMoney(l.deals || 0)}</td>
@@ -4291,6 +4350,7 @@ ${r.script || '未填写'}
       document.getElementById('ld-status').selectedIndex = 0;
       Array.from(document.getElementById('ld-creators').options).forEach(o => o.selected = false);
       document.getElementById('ld-deals').value = '';
+      document.getElementById('ld-fee-income').value = '';
       document.getElementById('ld-note').value = '';
     } else {
       const l = getLeaders()[i];
@@ -4302,9 +4362,12 @@ ${r.script || '未填写'}
       document.getElementById('ld-fee').value = l.fee || '';
       document.getElementById('ld-shop').value = l.shop || '';
       document.getElementById('ld-status').value = l.status || '沟通中';
+      const prodSel = document.getElementById('ld-products');
+      Array.from(prodSel.options).forEach(o => { o.selected = (l.productIds || []).includes(o.value); });
       const sel = document.getElementById('ld-creators');
       Array.from(sel.options).forEach(o => { o.selected = (l.creatorIds || []).includes(o.value); });
       document.getElementById('ld-deals').value = l.deals || '';
+      document.getElementById('ld-fee-income').value = l.feeIncome || '';
       document.getElementById('ld-note').value = l.note || '';
     }
     document.getElementById('ld-modal').classList.remove('hidden');
@@ -4312,8 +4375,10 @@ ${r.script || '未填写'}
   function closeLdModal() { document.getElementById('ld-modal').classList.add('hidden'); }
   function saveLd() {
     const i = document.getElementById('ld-id').value;
+    const productsSel = document.getElementById('ld-products');
+    const productIds = Array.from(productsSel.selectedOptions).map(o => o.value).filter(Boolean);
     const creatorsSel = document.getElementById('ld-creators');
-    const creatorIds = Array.from(creatorsSel.selectedOptions).map(o => o.value);
+    const creatorIds = Array.from(creatorsSel.selectedOptions).map(o => o.value).filter(Boolean);
     const data = {
       id: '',
       name: document.getElementById('ld-name').value.trim(),
@@ -4322,8 +4387,10 @@ ${r.script || '未填写'}
       fee: Number(document.getElementById('ld-fee').value) || 0,
       shop: document.getElementById('ld-shop').value,
       status: document.getElementById('ld-status').value,
+      productIds: productIds,
       creatorIds: creatorIds,
       deals: Number(document.getElementById('ld-deals').value) || 0,
+      feeIncome: Number(document.getElementById('ld-fee-income').value) || 0,
       note: document.getElementById('ld-note').value.trim()
     };
     if (!appData.v2) appData.v2 = { version: 2, products: [], scripts: [], videos: [], qianchuan: [], creators: [], leaders: [] };
@@ -4331,9 +4398,162 @@ ${r.script || '未填写'}
     const arr = appData.v2.leaders;
     if (i === '') { data.id = v2NextId(appData.v2, 'TZ'); arr.push(data); }
     else { data.id = arr[i].id; arr[i] = data; }
-    saveData(appData); closeLdModal(); renderLeaders();
+    saveData(appData); closeLdModal(); renderLeaders(); renderLeaderOrders();
   }
-  function delLd(i) { if (confirm('删除该团长？')) { getLeaders().splice(i, 1); saveData(appData); renderLeaders(); } }
+  function delLd(i) { if (confirm('删除该团长？')) { getLeaders().splice(i, 1); saveData(appData); renderLeaders(); renderLeaderOrders(); } }
+
+  function getLeaderOrders() { return (appData.v2 && appData.v2.leaderOrders) || []; }
+
+  function openLdImportModal() {
+    document.getElementById('ld-import-file').value = '';
+    document.getElementById('ld-import-text').value = '';
+    document.getElementById('ld-import-preview').textContent = '';
+    document.getElementById('ld-import-modal').classList.remove('hidden');
+  }
+  function closeLdImportModal() { document.getElementById('ld-import-modal').classList.add('hidden'); }
+
+  function parseCSV(text) {
+    const rows = [];
+    // 简单 CSV 解析：支持引号包裹字段
+    const lines = text.trim().split(/\r?\n/);
+    if (lines.length < 2) return [];
+    const header = lines[0].split(',').map(h => h.trim());
+    for (let i = 1; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (!line) continue;
+      const vals = [];
+      let cur = '', inQ = false;
+      for (let j = 0; j < line.length; j++) {
+        const ch = line[j];
+        if (ch === '"') { inQ = !inQ; }
+        else if (ch === ',' && !inQ) { vals.push(cur.trim()); cur = ''; }
+        else { cur += ch; }
+      }
+      vals.push(cur.trim());
+      const row = {};
+      header.forEach((h, idx) => { row[h] = vals[idx] !== undefined ? vals[idx] : ''; });
+      rows.push(row);
+    }
+    return rows;
+  }
+
+  function normMoney(v) {
+    if (v === undefined || v === null || v === '') return 0;
+    const s = String(v).replace(/[¥,\s]/g, '');
+    const n = Number(s);
+    return isNaN(n) ? 0 : n;
+  }
+
+  function importLeaderOrders() {
+    const fileInput = document.getElementById('ld-import-file');
+    const text = document.getElementById('ld-import-text').value.trim();
+    const preview = document.getElementById('ld-import-preview');
+    if (fileInput.files && fileInput.files[0]) {
+      const reader = new FileReader();
+      reader.onload = e => processLeaderOrders(e.target.result);
+      reader.readAsText(fileInput.files[0], 'utf-8');
+    } else if (text) {
+      processLeaderOrders(text);
+    } else {
+      preview.textContent = '请先上传 CSV 文件或粘贴 CSV 内容。';
+    }
+  }
+
+  function processLeaderOrders(raw) {
+    const preview = document.getElementById('ld-import-preview');
+    const rows = parseCSV(raw);
+    if (!rows.length) { preview.textContent = '未解析到有效数据，请检查 CSV 格式。'; return; }
+    if (!appData.v2) appData.v2 = { version: 2, products: [], scripts: [], videos: [], qianchuan: [], creators: [], leaders: [] };
+    if (!appData.v2.leaderOrders) appData.v2.leaderOrders = [];
+    const orders = appData.v2.leaderOrders;
+    const existing = new Set(orders.map(o => o.orderId));
+    let added = 0, updated = 0;
+    rows.forEach(r => {
+      const orderId = (r['订单id'] || '').trim();
+      if (!orderId) return;
+      const o = {
+        orderId: orderId,
+        productName: r['商品名称'] || '',
+        productId: r['商品id'] || '',
+        orderStatus: r['订单状态'] || '',
+        unsettleReason: r['超时未结算原因'] || '',
+        agency: r['出单机构'] || '',
+        payAmount: normMoney(r['支付金额']),
+        feeRate: normMoney(r['服务费率']),
+        estFeeIncome: normMoney(r['预估服务费收入']),
+        settleAmount: normMoney(r['结算金额']),
+        actualFeeIncome: normMoney(r['实际服务费收入']),
+        payTime: r['付款时间'] || '',
+        receiveTime: r['收货时间'] || '',
+        settleTime: r['结算时间'] || '',
+        tailPayTime: r['尾款支付时间'] || '',
+        depositAmount: normMoney(r['定金金额']),
+        shopId: r['店铺id'] || '',
+        shopName: r['店铺名称'] || '',
+        quantity: normMoney(r['商品数量']),
+        activityId: r['团长活动id'] || '',
+        orderSource: r['订单来源'] || '',
+        paySubsidy: normMoney(r['支付补贴']),
+        platformSubsidy: normMoney(r['平台补贴']),
+        creatorSubsidy: normMoney(r['达人补贴']),
+        shippingFee: normMoney(r['运费']),
+        tax: normMoney(r['税费']),
+        shippingSubsidy: normMoney(r['运费补贴']),
+        planType: r['计划类型'] || '',
+        productSource: r['商品来源'] || '',
+        orderType: r['订单类型'] || '',
+        importAt: new Date().toISOString()
+      };
+      if (existing.has(orderId)) {
+        const idx = orders.findIndex(x => x.orderId === orderId);
+        if (idx >= 0) { orders[idx] = o; updated++; }
+      } else {
+        orders.push(o); added++; existing.add(orderId);
+      }
+    });
+    saveData(appData);
+    preview.textContent = `导入完成：新增 ${added} 条，更新 ${updated} 条，共 ${orders.length} 条订单。`;
+    renderLeaderOrders();
+  }
+
+  function matchLeaderByAgency(agency) {
+    if (!agency) return null;
+    const list = getLeaders();
+    return list.find(l => l.name && agency.includes(l.name)) || null;
+  }
+
+  function renderLeaderOrders() {
+    const orders = getLeaderOrders();
+    const wrap = document.getElementById('ld-orders-wrap');
+    const tb = document.getElementById('ld-orders-table');
+    if (!wrap || !tb) return;
+    if (orders.length === 0) { wrap.classList.add('hidden'); return; }
+    wrap.classList.remove('hidden');
+    // 按出单机构聚合
+    const map = {};
+    orders.forEach(o => {
+      const key = o.agency || '未关联机构';
+      if (!map[key]) map[key] = { agency: key, count: 0, pay: 0, actualFee: 0, estFee: 0, settle: 0 };
+      map[key].count++;
+      map[key].pay += o.payAmount || 0;
+      map[key].actualFee += o.actualFeeIncome || 0;
+      map[key].estFee += o.estFeeIncome || 0;
+      map[key].settle += o.settleAmount || 0;
+    });
+    const rows = Object.values(map).sort((a, b) => b.pay - a.pay);
+    tb.innerHTML = rows.map(r => {
+      const leader = matchLeaderByAgency(r.agency);
+      const link = leader ? `<span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-600">已关联 ${escapeHtml(leader.name)}</span>` : '<span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500">未关联团长</span>';
+      return `<tr class="hover:bg-slate-50">
+        <td class="px-3 py-2"><div class="font-medium text-slate-800 text-sm">${escapeHtml(r.agency)}</div><div class="mt-0.5">${link}</div></td>
+        <td class="px-3 py-2 text-xs">${r.count}</td>
+        <td class="px-3 py-2 text-xs">${fmtMoney(r.pay)}</td>
+        <td class="px-3 py-2 text-xs">${fmtMoney(r.estFee)}</td>
+        <td class="px-3 py-2 text-xs">${fmtMoney(r.actualFee)}</td>
+        <td class="px-3 py-2 text-xs">${fmtMoney(r.settle)}</td>
+      </tr>`;
+    }).join('');
+  }
 
   // ================= 初始化 =================
   document.addEventListener('DOMContentLoaded', async () => {
@@ -4342,6 +4562,7 @@ ${r.script || '未填写'}
     normalizeVideoRequests(); // 给视频需求补稳定 id，供脚本中心关联
     normalizeCreators(); // 给达人补稳定 id(CR) 并迁移团长 creatorIds，打通双向关联
     normalizeV2Products(); // 修正商品店铺归属，确保 5 店商品都能被关联
+    if (appData.v2 && !appData.v2.leaderOrders) appData.v2.leaderOrders = []; // 确保团长订单数组存在
     updateDate();
     renderTasks();
     // 如果是新的一天，自动刷新灵感
