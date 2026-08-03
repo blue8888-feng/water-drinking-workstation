@@ -726,6 +726,7 @@
             <p class="text-sm text-slate-500 mt-1">5 家店经营总览 · 数据手动录入，支持导出 / 导入备份</p>
           </div>
           <div class="flex items-center gap-2">
+            <button onclick="openCpImportModal()" class="text-sm px-4 py-2 bg-white border border-slate-200 hover:border-brand-300 rounded-lg transition-colors"><i class="fa-solid fa-file-import mr-1 text-brand-600"></i>导入数据</button>
             <button onclick="editStore()" class="text-sm px-4 py-2 bg-white border border-slate-200 hover:border-brand-300 rounded-lg transition-colors"><i class="fa-solid fa-pen-to-square mr-1 text-brand-600"></i>录入店铺数据</button>
           </div>
         </div>
@@ -1110,9 +1111,9 @@
       <div id="cr-import-modal" class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onclick="if(event.target===this)closeCrImportModal()">
         <div class="bg-white rounded-2xl p-6 w-full max-w-3xl shadow-xl max-h-[90vh] overflow-y-auto">
           <h3 class="text-lg font-bold text-slate-800 mb-4"><i class="fa-solid fa-file-import mr-1.5 text-brand-600"></i>导入达人订单</h3>
-          <p class="text-xs text-slate-500 mb-2">支持 CSV 文件上传或粘贴 CSV 文本。按「作者账号 / 抖音号」自动关联达人；订单 id 重复会自动去重。</p>
+          <p class="text-xs text-slate-500 mb-2">支持 xlsx / csv 文件上传或粘贴文本。按「作者账号 / 抖音号」自动关联达人；订单 id 重复会自动去重。</p>
           <div class="space-y-3">
-            <div><input id="cr-import-file" type="file" accept=".csv,.txt" class="w-full text-sm text-slate-600"></div>
+            <div><input id="cr-import-file" type="file" accept=".xlsx,.xls,.csv,.txt" class="w-full text-sm text-slate-600"></div>
             <div><label class="text-xs text-slate-500">CSV 内容 <span class="text-slate-400">（第一行为表头）</span></label>
               <textarea id="cr-import-text" rows="8" placeholder="订单id,商品id,商品名称,作者账号,抖音/火山号,支付金额,佣金率,预估佣金支出,结算金额,实际佣金支出,订单状态,超时未结算原因,付款时间,收货时间,订单结算时间,支付补贴,平台补贴,达人补贴,运费,税费,运费补贴,分销来源,营销活动id,推广费率,推广技术服务费,预估推广费支出,结算推广费支出,佣金类型,订单来源,流量细分来源,流量来源,订单类型" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-mono"></textarea></div>
             <div id="cr-import-preview" class="text-xs text-slate-500"></div>
@@ -1128,9 +1129,9 @@
       <div id="ld-import-modal" class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onclick="if(event.target===this)closeLdImportModal()">
         <div class="bg-white rounded-2xl p-6 w-full max-w-3xl shadow-xl max-h-[90vh] overflow-y-auto">
           <h3 class="text-lg font-bold text-slate-800 mb-4"><i class="fa-solid fa-file-import mr-1.5 text-brand-600"></i>导入团长订单</h3>
-          <p class="text-xs text-slate-500 mb-2">支持 CSV 文件上传或粘贴 CSV 文本。按「出单机构」自动关联团长；订单 id 重复会自动去重。</p>
+          <p class="text-xs text-slate-500 mb-2">支持 xlsx / csv 文件上传或粘贴文本。按「出单机构」自动关联团长；订单 id 重复会自动去重。</p>
           <div class="space-y-3">
-            <div><input id="ld-import-file" type="file" accept=".csv,.txt" class="w-full text-sm text-slate-600"></div>
+            <div><input id="ld-import-file" type="file" accept=".xlsx,.xls,.csv,.txt" class="w-full text-sm text-slate-600"></div>
             <div><label class="text-xs text-slate-500">CSV 内容 <span class="text-slate-400">（第一行为表头）</span></label>
               <textarea id="ld-import-text" rows="8" placeholder="订单id,商品名称,商品id,订单状态,超时未结算原因,出单机构,支付金额,服务费率,预估服务费收入,结算金额,实际服务费收入,付款时间,收货时间,结算时间,尾款支付时间,定金金额,店铺id,店铺名称,商品数量,团长活动id,订单来源,支付补贴,平台补贴,达人补贴,运费,税费,运费补贴,计划类型,商品来源,订单来源,订单类型" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-mono"></textarea></div>
             <div id="ld-import-preview" class="text-xs text-slate-500"></div>
@@ -1145,6 +1146,28 @@
     </div>
   </main>
 </div>
+
+      <!-- 运营驾驶舱数据导入弹窗 -->
+      <div id="cp-import-modal" class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onclick="if(event.target===this)closeCpImportModal()">
+        <div class="bg-white rounded-2xl p-6 w-full max-w-3xl shadow-xl max-h-[90vh] overflow-y-auto">
+          <h3 class="text-lg font-bold text-slate-800 mb-4"><i class="fa-solid fa-file-import mr-1.5 text-brand-600"></i>导入运营驾驶舱数据</h3>
+          <p class="text-xs text-slate-500 mb-3">支持 xlsx / csv 上传。先选导入类型，再上传表格（第一行为表头，按表头自动识别字段）。</p>
+          <div class="flex gap-4 mb-4 text-sm">
+            <label class="flex items-center gap-1.5 cursor-pointer"><input type="radio" name="cp-type" value="store" checked> 店铺指标</label>
+            <label class="flex items-center gap-1.5 cursor-pointer"><input type="radio" name="cp-type" value="rank"> 商品销售排名</label>
+          </div>
+          <div class="space-y-3">
+            <div><input id="cp-import-file" type="file" accept=".xlsx,.xls,.csv,.txt" class="w-full text-sm text-slate-600"></div>
+            <div><label class="text-xs text-slate-500">CSV 内容 <span class="text-slate-400">（如不上传文件，可粘贴 CSV 文本）</span></label>
+              <textarea id="cp-import-text" rows="6" placeholder="店铺,GMV,目标,推广消耗,订单数&#10;洞庭山官方旗舰店,210000,200000,35000,4200" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-mono"></textarea></div>
+            <div id="cp-import-preview" class="text-xs text-slate-500"></div>
+          </div>
+          <div class="flex gap-2 mt-5">
+            <button onclick="importCockpit()" class="flex-1 px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-lg">导入</button>
+            <button onclick="closeCpImportModal()" class="px-4 py-2.5 text-slate-500 hover:text-slate-700 rounded-lg">取消</button>
+          </div>
+        </div>
+      </div>
 
 <script>
   // ================= 数据存储 =================
@@ -3530,6 +3553,85 @@ ${r.script || '未填写'}
     saveData(appData); closeStoreModal(); renderCockpit();
   }
 
+  // ---- 运营驾驶舱数据导入 ----
+  function openCpImportModal() {
+    document.getElementById('cp-import-file').value = '';
+    document.getElementById('cp-import-text').value = '';
+    document.getElementById('cp-import-preview').textContent = '';
+    document.getElementById('cp-import-modal').classList.remove('hidden');
+  }
+  function closeCpImportModal() { document.getElementById('cp-import-modal').classList.add('hidden'); }
+
+  function importCockpit() {
+    const fileInput = document.getElementById('cp-import-file');
+    const text = document.getElementById('cp-import-text').value.trim();
+    const preview = document.getElementById('cp-import-preview');
+    const type = (document.querySelector('input[name="cp-type"]:checked') || {}).value || 'store';
+    const file = fileInput.files && fileInput.files[0];
+    if (file) {
+      if (/\.xlsx?$/i.test(file.name)) {
+        readXlsxFile(file).then(rows => processCockpitRows(rows, type)).catch(err => preview.textContent = 'xlsx 解析失败：' + (err.message || err));
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = e => processCockpitRows(parseCSV(e.target.result), type);
+      reader.readAsText(file, 'utf-8');
+    } else if (text) {
+      processCockpitRows(parseCSV(text), type);
+    } else {
+      preview.textContent = '请先上传文件或粘贴 CSV 内容。';
+    }
+  }
+
+  function processCockpitRows(rows, type) {
+    const preview = document.getElementById('cp-import-preview');
+    if (!rows || !rows.length) { preview.textContent = '未解析到有效数据，请检查格式。'; return; }
+    if (type === 'rank') applyCockpitRank(rows);
+    else applyCockpitStores(rows);
+  }
+
+  function applyCockpitStores(rows) {
+    const preview = document.getElementById('cp-import-preview');
+    if (!appData.shops) appData.shops = [];
+    let updated = 0, skipped = 0; const details = [];
+    rows.forEach(r => {
+      const name = String(pick(r, ['店铺', '店铺名', '店铺名称', '名称', '店名']) || '').trim();
+      if (!name) { skipped++; return; }
+      let shop = appData.shops.find(s => s.name === name);
+      if (!shop) shop = appData.shops.find(s => s.name && (s.name.includes(name) || name.includes(s.name)));
+      if (!shop) { skipped++; details.push('未匹配到店铺：' + name); return; }
+      let ch = 0;
+      const gmv = pick(r, ['GMV', '成交额', '成交金额', '销售额', '成交', '支付GMV', '支付金额', 'gmv']);
+      if (gmv !== '') { shop.gmv = normMoney(gmv); ch++; }
+      const target = pick(r, ['目标', '目标GMV', '目标销售额', '目标额']);
+      if (target !== '') { shop.target = normMoney(target); ch++; }
+      const spend = pick(r, ['推广消耗', '消耗', '投放消耗', '花费', '推广花费', '消耗金额']);
+      if (spend !== '') { shop.spend = normMoney(spend); ch++; }
+      const orders = pick(r, ['订单数', '订单', '订单量', '成交订单数']);
+      if (orders !== '') { shop.orders = normMoney(orders); ch++; }
+      if (ch) { updated++; details.push('已更新：' + shop.name + '（' + ch + ' 项）'); }
+    });
+    saveData(appData); renderCockpit();
+    preview.innerHTML = `导入完成：更新 <b>${updated}</b> 个店铺，跳过 <b>${skipped}</b> 行。` +
+      (details.length ? '<div class="mt-2 text-slate-600">' + details.slice(0, 12).map(d => '· ' + escapeHtml(d)).join('<br>') + '</div>' : '');
+  }
+
+  function applyCockpitRank(rows) {
+    const preview = document.getElementById('cp-import-preview');
+    const rank = [];
+    rows.forEach(r => {
+      const name = String(pick(r, ['商品', '商品名', '商品名称', '品名', '名称']) || '').trim();
+      if (!name) return;
+      const shop = String(pick(r, ['店铺', '店铺名', '店铺名称']) || '').trim() || (appData.shops[0] && appData.shops[0].name) || SHOP_LIST[0] || '';
+      const sales = normMoney(pick(r, ['销量', '销售件数', '件数', '销售数量']));
+      const deals = normMoney(pick(r, ['销售额', '成交金额', '销售额(元)', '金额', 'GMV']));
+      rank.push({ shop: shop, name: name, sales: sales, deals: deals });
+    });
+    appData.productRank = rank;
+    saveData(appData); renderCockpit();
+    preview.textContent = `导入完成：商品销售排名共 ${rank.length} 条（已覆盖原数据）。`;
+  }
+
   function fillShopSelect(selId) {
     const sel = document.getElementById(selId);
     if (sel.options.length === 0) sel.innerHTML = SHOP_LIST.map(s => `<option>${s}</option>`).join('');
@@ -4315,28 +4417,39 @@ ${r.script || '未填写'}
     const fileInput = document.getElementById('cr-import-file');
     const text = document.getElementById('cr-import-text').value.trim();
     const preview = document.getElementById('cr-import-preview');
-    if (fileInput.files && fileInput.files[0]) {
+    const file = fileInput.files && fileInput.files[0];
+    if (file) {
+      if (/\.xlsx?$/i.test(file.name)) {
+        readXlsxFile(file).then(rows => processCreatorRows(rows)).catch(err => preview.textContent = 'xlsx 解析失败：' + (err.message || err));
+        return;
+      }
       const reader = new FileReader();
       reader.onload = e => processCreatorOrders(e.target.result);
-      reader.readAsText(fileInput.files[0], 'utf-8');
+      reader.readAsText(file, 'utf-8');
     } else if (text) {
       processCreatorOrders(text);
     } else {
-      preview.textContent = '请先上传 CSV 文件或粘贴 CSV 内容。';
+      preview.textContent = '请先上传文件或粘贴 CSV 内容。';
     }
   }
 
   function processCreatorOrders(raw) {
     const preview = document.getElementById('cr-import-preview');
     const rows = parseCSV(raw);
-    if (!rows.length) { preview.textContent = '未解析到有效数据，请检查 CSV 格式。'; return; }
+    if (!rows.length) { preview.textContent = '未解析到有效数据，请检查格式。'; return; }
+    processCreatorRows(rows);
+  }
+
+  function processCreatorRows(rows) {
+    const preview = document.getElementById('cr-import-preview');
+    if (!rows || !rows.length) { preview.textContent = '未解析到有效数据，请检查格式。'; return; }
     if (!appData.v2) appData.v2 = { version: 2, products: [], scripts: [], videos: [], qianchuan: [], creators: [], leaders: [], leaderOrders: [], creatorOrders: [] };
     if (!appData.v2.creatorOrders) appData.v2.creatorOrders = [];
     const orders = appData.v2.creatorOrders;
     const existing = new Set(orders.map(o => o.orderId));
     let added = 0, updated = 0;
     rows.forEach(r => {
-      const orderId = (r['订单id'] || '').trim();
+      const orderId = String(r['订单id'] || '').trim();
       if (!orderId) return;
       const o = {
         orderId: orderId,
@@ -4617,6 +4730,52 @@ ${r.script || '未填写'}
   }
   function closeLdImportModal() { document.getElementById('ld-import-modal').classList.add('hidden'); }
 
+  // ---- xlsx 解析（按需从 CDN 加载 SheetJS，多源容错）----
+  function loadXLSX() {
+    return new Promise((resolve, reject) => {
+      if (window.XLSX) return resolve(window.XLSX);
+      const cdns = [
+        'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js',
+        'https://cdn.bootcdn.net/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
+        'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
+        'https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js'
+      ];
+      let i = 0;
+      (function tryNext() {
+        if (i >= cdns.length) return reject(new Error('无法加载 xlsx 解析库（请检查网络后重试）'));
+        const s = document.createElement('script');
+        s.src = cdns[i++];
+        s.onload = () => window.XLSX ? resolve(window.XLSX) : tryNext();
+        s.onerror = tryNext;
+        document.head.appendChild(s);
+      })();
+    });
+  }
+
+  function readXlsxFile(file) {
+    return new Promise((resolve, reject) => {
+      loadXLSX().then(XLSX => {
+        const reader = new FileReader();
+        reader.onload = e => {
+          try {
+            const data = new Uint8Array(e.target.result);
+            const wb = XLSX.read(data, { type: 'array' });
+            const ws = wb.Sheets[wb.SheetNames[0]];
+            const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+            resolve(rows);
+          } catch (err) { reject(err); }
+        };
+        reader.onerror = () => reject(new Error('文件读取失败'));
+        reader.readAsArrayBuffer(file);
+      }).catch(reject);
+    });
+  }
+
+  function pick(r, names) {
+    for (const n of names) { if (r && r[n] !== undefined && r[n] !== '') return r[n]; }
+    return '';
+  }
+
   function parseCSV(text) {
     const rows = [];
     // 简单 CSV 解析：支持引号包裹字段
@@ -4653,28 +4812,39 @@ ${r.script || '未填写'}
     const fileInput = document.getElementById('ld-import-file');
     const text = document.getElementById('ld-import-text').value.trim();
     const preview = document.getElementById('ld-import-preview');
-    if (fileInput.files && fileInput.files[0]) {
+    const file = fileInput.files && fileInput.files[0];
+    if (file) {
+      if (/\.xlsx?$/i.test(file.name)) {
+        readXlsxFile(file).then(rows => processLeaderRows(rows)).catch(err => preview.textContent = 'xlsx 解析失败：' + (err.message || err));
+        return;
+      }
       const reader = new FileReader();
       reader.onload = e => processLeaderOrders(e.target.result);
-      reader.readAsText(fileInput.files[0], 'utf-8');
+      reader.readAsText(file, 'utf-8');
     } else if (text) {
       processLeaderOrders(text);
     } else {
-      preview.textContent = '请先上传 CSV 文件或粘贴 CSV 内容。';
+      preview.textContent = '请先上传文件或粘贴 CSV 内容。';
     }
   }
 
   function processLeaderOrders(raw) {
     const preview = document.getElementById('ld-import-preview');
     const rows = parseCSV(raw);
-    if (!rows.length) { preview.textContent = '未解析到有效数据，请检查 CSV 格式。'; return; }
-    if (!appData.v2) appData.v2 = { version: 2, products: [], scripts: [], videos: [], qianchuan: [], creators: [], leaders: [] };
+    if (!rows.length) { preview.textContent = '未解析到有效数据，请检查格式。'; return; }
+    processLeaderRows(rows);
+  }
+
+  function processLeaderRows(rows) {
+    const preview = document.getElementById('ld-import-preview');
+    if (!rows || !rows.length) { preview.textContent = '未解析到有效数据，请检查格式。'; return; }
+    if (!appData.v2) appData.v2 = { version: 2, products: [], scripts: [], videos: [], qianchuan: [], creators: [], leaders: [], leaderOrders: [], creatorOrders: [] };
     if (!appData.v2.leaderOrders) appData.v2.leaderOrders = [];
     const orders = appData.v2.leaderOrders;
     const existing = new Set(orders.map(o => o.orderId));
     let added = 0, updated = 0;
     rows.forEach(r => {
-      const orderId = (r['订单id'] || '').trim();
+      const orderId = String(r['订单id'] || '').trim();
       if (!orderId) return;
       const o = {
         orderId: orderId,
