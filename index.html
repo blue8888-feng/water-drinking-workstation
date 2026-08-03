@@ -855,9 +855,14 @@
             <h3 class="text-lg font-semibold text-slate-800">达人合作管理</h3>
             <p class="text-sm text-slate-500 mt-1">达人名单 / 地区 / 佣金 / 合作状态 / 成交</p>
           </div>
-          <button onclick="openCrModal()" class="text-sm px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-lg transition-colors flex items-center">
-            <i class="fa-solid fa-plus mr-1.5"></i>新增达人
-          </button>
+          <div class="flex gap-2">
+            <button onclick="openCrImportModal()" class="text-sm px-4 py-2 bg-white border border-slate-200 hover:border-brand-300 text-slate-700 rounded-lg transition-colors flex items-center">
+              <i class="fa-solid fa-file-import mr-1.5 text-brand-600"></i>导入订单
+            </button>
+            <button onclick="openCrModal()" class="text-sm px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-lg transition-colors flex items-center">
+              <i class="fa-solid fa-plus mr-1.5"></i>新增达人
+            </button>
+          </div>
         </div>
 
         <div id="cr-summary" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5"></div>
@@ -869,10 +874,34 @@
                 <th class="px-3 py-3 font-medium">达人</th><th class="px-3 py-3 font-medium">平台</th>
                 <th class="px-3 py-3 font-medium">地区</th><th class="px-3 py-3 font-medium">粉丝</th>
                 <th class="px-3 py-3 font-medium">佣金</th><th class="px-3 py-3 font-medium">状态</th>
-                <th class="px-3 py-3 font-medium">成交</th><th class="px-3 py-3 font-medium">所属团长</th><th class="px-3 py-3 font-medium w-24">操作</th>
+                <th class="px-3 py-3 font-medium">支付金额</th><th class="px-3 py-3 font-medium">预估佣金</th>
+                <th class="px-3 py-3 font-medium">实际佣金</th><th class="px-3 py-3 font-medium">推广费</th>
+                <th class="px-3 py-3 font-medium">所属团长</th><th class="px-3 py-3 font-medium w-24">操作</th>
               </tr></thead>
               <tbody id="cr-table" class="divide-y divide-slate-100"></tbody>
             </table>
+          </div>
+        </div>
+
+        <div id="cr-orders-wrap" class="mt-5 hidden">
+          <div class="flex items-center justify-between mb-3">
+            <h4 class="text-sm font-semibold text-slate-700 flex items-center gap-2"><i class="fa-solid fa-receipt text-brand-600"></i>导入订单聚合</h4>
+            <span class="text-xs text-slate-400">按「作者账号 / 抖音号」汇总，与达人名匹配时显示关联</span>
+          </div>
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead><tr class="bg-slate-50 text-left text-xs text-slate-500 uppercase">
+                  <th class="px-3 py-3 font-medium">作者账号</th>
+                  <th class="px-3 py-3 font-medium">订单数</th>
+                  <th class="px-3 py-3 font-medium">支付金额</th>
+                  <th class="px-3 py-3 font-medium">预估佣金</th>
+                  <th class="px-3 py-3 font-medium">实际佣金</th>
+                  <th class="px-3 py-3 font-medium">推广费</th>
+                </tr></thead>
+                <tbody id="cr-orders-table" class="divide-y divide-slate-100"></tbody>
+              </table>
+            </div>
           </div>
         </div>
       </section>
@@ -1077,6 +1106,24 @@
         </div>
       </div>
 
+      <!-- 达人订单导入弹窗 -->
+      <div id="cr-import-modal" class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onclick="if(event.target===this)closeCrImportModal()">
+        <div class="bg-white rounded-2xl p-6 w-full max-w-3xl shadow-xl max-h-[90vh] overflow-y-auto">
+          <h3 class="text-lg font-bold text-slate-800 mb-4"><i class="fa-solid fa-file-import mr-1.5 text-brand-600"></i>导入达人订单</h3>
+          <p class="text-xs text-slate-500 mb-2">支持 CSV 文件上传或粘贴 CSV 文本。按「作者账号 / 抖音号」自动关联达人；订单 id 重复会自动去重。</p>
+          <div class="space-y-3">
+            <div><input id="cr-import-file" type="file" accept=".csv,.txt" class="w-full text-sm text-slate-600"></div>
+            <div><label class="text-xs text-slate-500">CSV 内容 <span class="text-slate-400">（第一行为表头）</span></label>
+              <textarea id="cr-import-text" rows="8" placeholder="订单id,商品id,商品名称,作者账号,抖音/火山号,支付金额,佣金率,预估佣金支出,结算金额,实际佣金支出,订单状态,超时未结算原因,付款时间,收货时间,订单结算时间,支付补贴,平台补贴,达人补贴,运费,税费,运费补贴,分销来源,营销活动id,推广费率,推广技术服务费,预估推广费支出,结算推广费支出,佣金类型,订单来源,流量细分来源,流量来源,订单类型" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-mono"></textarea></div>
+            <div id="cr-import-preview" class="text-xs text-slate-500"></div>
+          </div>
+          <div class="flex gap-2 mt-5">
+            <button onclick="importCreatorOrders()" class="flex-1 px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-lg">导入</button>
+            <button onclick="closeCrImportModal()" class="px-4 py-2.5 text-slate-500 hover:text-slate-700 rounded-lg">取消</button>
+          </div>
+        </div>
+      </div>
+
       <!-- 团长订单导入弹窗 -->
       <div id="ld-import-modal" class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onclick="if(event.target===this)closeLdImportModal()">
         <div class="bg-white rounded-2xl p-6 w-full max-w-3xl shadow-xl max-h-[90vh] overflow-y-auto">
@@ -1183,7 +1230,7 @@
     const model = {
       version: 2,
       migratedAt: new Date().toISOString(),
-      products: [], scripts: [], videos: [], qianchuan: [], creators: [], leaders: [], leaderOrders: []
+      products: [], scripts: [], videos: [], qianchuan: [], creators: [], leaders: [], leaderOrders: [], creatorOrders: []
     };
 
     // 1) 商品 SP001…（PRODUCTS 基础目录 + productEdits 编辑项）
@@ -1324,7 +1371,7 @@
     if (tabName === 'scripts') renderScripts();
     if (tabName === 'videopool') renderVideoPool();
     if (tabName === 'qianchuan') renderQianchuan();
-    if (tabName === 'creators') renderCreators();
+    if (tabName === 'creators') { renderCreators(); renderCreatorOrders(); }
     if (tabName === 'leaders') { renderLeaders(); renderLeaderOrders(); }
     if (tabName === 'review') { renderReviewHistory(); fillReviewDefaults(); }
     if (tabName === 'memo') initMemoSection();
@@ -4159,21 +4206,27 @@ ${r.script || '未填写'}
   function renderCreators() {
     const list = appData.creators || [];
     const coop = list.filter(c => c.status === '合作中').length;
-    const totalDeals = list.reduce((s, x) => s + (Number(x.deals) || 0), 0);
     const avgComm = list.length ? (list.reduce((s, x) => s + (Number(x.commission) || 0), 0) / list.length).toFixed(1) : 0;
+    // 从导入订单聚合达人数据
+    const agg = aggregateCreatorOrders();
+    const totalPay = list.reduce((s, c) => s + (agg.byCreator[c.id]?.pay || 0), 0);
+    const totalEstComm = list.reduce((s, c) => s + (agg.byCreator[c.id]?.estCommission || 0), 0);
+    const totalActualComm = list.reduce((s, c) => s + (agg.byCreator[c.id]?.actualCommission || 0), 0);
+    const totalPromo = list.reduce((s, c) => s + (agg.byCreator[c.id]?.promoFee || 0), 0);
     document.getElementById('cr-summary').innerHTML = `
       ${card('达人总数', list.length, 'fa-users', 'text-brand-600')}
       ${card('合作中', coop, 'fa-handshake', 'text-emerald-600')}
-      ${card('总成交', fmtMoney(totalDeals), 'fa-yen-sign', 'text-orange-500')}
+      ${card('支付金额', fmtMoney(totalPay), 'fa-yen-sign', 'text-orange-500')}
       ${card('平均佣金', avgComm + '%', 'fa-percent', 'text-indigo-500')}
     `;
     const tb = document.getElementById('cr-table');
     const statusColors = { '沟通中': 'slate', '已寄样': 'blue', '合作中': 'emerald', '已结束': 'gray', '终止': 'red' };
     const ldAll = getLeaders();
-    if (list.length === 0) { tb.innerHTML = '<tr><td colspan="9" class="px-3 py-10 text-center text-slate-300 text-sm">还没有达人，点「新增达人」</td></tr>'; }
+    if (list.length === 0) { tb.innerHTML = '<tr><td colspan="12" class="px-3 py-10 text-center text-slate-300 text-sm">还没有达人，点「新增达人」</td></tr>'; }
     else {
       tb.innerHTML = list.map((c, i) => {
         const myLeaders = ldAll.filter(l => (l.creatorIds || []).includes(c.id)).map(l => l.name);
+        const a = agg.byCreator[c.id] || { pay: 0, estCommission: 0, actualCommission: 0, promoFee: 0 };
         return `
         <tr class="hover:bg-slate-50">
           <td class="px-3 py-2 font-medium text-slate-800">${escapeHtml(c.name || '')}</td>
@@ -4182,7 +4235,10 @@ ${r.script || '未填写'}
           <td class="px-3 py-2 text-xs">${c.fans ? fmtNum(c.fans) : '—'}</td>
           <td class="px-3 py-2 text-xs">${c.commission ? c.commission + '%' : '—'}</td>
           <td class="px-3 py-2"><span class="text-xs px-2 py-0.5 rounded-full bg-${statusColors[c.status] || 'slate'}-100 text-${statusColors[c.status] || 'slate'}-700">${c.status || '沟通中'}</span></td>
-          <td class="px-3 py-2 text-xs">${fmtMoney(c.deals || 0)}</td>
+          <td class="px-3 py-2 text-xs">${fmtMoney(a.pay)}</td>
+          <td class="px-3 py-2 text-xs">${fmtMoney(a.estCommission)}</td>
+          <td class="px-3 py-2 text-xs">${fmtMoney(a.actualCommission)}</td>
+          <td class="px-3 py-2 text-xs">${fmtMoney(a.promoFee)}</td>
           <td class="px-3 py-2 text-xs text-slate-500">${myLeaders.length ? escapeHtml(myLeaders.join('、')) : '无'}</td>
           <td class="px-3 py-2">
             <button onclick="openCrModal(${i})" class="text-slate-400 hover:text-brand-600 mr-2"><i class="fa-solid fa-pen"></i></button>
@@ -4242,7 +4298,156 @@ ${r.script || '未填写'}
     else { data.id = (appData.creators[i] && appData.creators[i].id) || nextCreatorId(); appData.creators[i] = data; }
     saveData(appData); closeCrModal(); renderCreators();
   }
-  function delCr(i) { if (confirm('删除该达人？')) { appData.creators.splice(i, 1); saveData(appData); renderCreators(); } }
+  function delCr(i) { if (confirm('删除该达人？')) { appData.creators.splice(i, 1); saveData(appData); renderCreators(); renderCreatorOrders(); } }
+
+  // ---- 达人订单导入（存 appData.v2.creatorOrders）----
+  function getCreatorOrders() { return (appData.v2 && appData.v2.creatorOrders) || []; }
+
+  function openCrImportModal() {
+    document.getElementById('cr-import-file').value = '';
+    document.getElementById('cr-import-text').value = '';
+    document.getElementById('cr-import-preview').textContent = '';
+    document.getElementById('cr-import-modal').classList.remove('hidden');
+  }
+  function closeCrImportModal() { document.getElementById('cr-import-modal').classList.add('hidden'); }
+
+  function importCreatorOrders() {
+    const fileInput = document.getElementById('cr-import-file');
+    const text = document.getElementById('cr-import-text').value.trim();
+    const preview = document.getElementById('cr-import-preview');
+    if (fileInput.files && fileInput.files[0]) {
+      const reader = new FileReader();
+      reader.onload = e => processCreatorOrders(e.target.result);
+      reader.readAsText(fileInput.files[0], 'utf-8');
+    } else if (text) {
+      processCreatorOrders(text);
+    } else {
+      preview.textContent = '请先上传 CSV 文件或粘贴 CSV 内容。';
+    }
+  }
+
+  function processCreatorOrders(raw) {
+    const preview = document.getElementById('cr-import-preview');
+    const rows = parseCSV(raw);
+    if (!rows.length) { preview.textContent = '未解析到有效数据，请检查 CSV 格式。'; return; }
+    if (!appData.v2) appData.v2 = { version: 2, products: [], scripts: [], videos: [], qianchuan: [], creators: [], leaders: [], leaderOrders: [], creatorOrders: [] };
+    if (!appData.v2.creatorOrders) appData.v2.creatorOrders = [];
+    const orders = appData.v2.creatorOrders;
+    const existing = new Set(orders.map(o => o.orderId));
+    let added = 0, updated = 0;
+    rows.forEach(r => {
+      const orderId = (r['订单id'] || '').trim();
+      if (!orderId) return;
+      const o = {
+        orderId: orderId,
+        productId: r['商品id'] || '',
+        productName: r['商品名称'] || '',
+        authorAccount: r['作者账号'] || '',
+        douyinId: r['抖音/火山号'] || '',
+        payAmount: normMoney(r['支付金额']),
+        commissionRate: normMoney(r['佣金率']),
+        estCommission: normMoney(r['预估佣金支出']),
+        settleAmount: normMoney(r['结算金额']),
+        actualCommission: normMoney(r['实际佣金支出']),
+        orderStatus: r['订单状态'] || '',
+        unsettleReason: r['超时未结算原因'] || '',
+        payTime: r['付款时间'] || '',
+        receiveTime: r['收货时间'] || '',
+        settleTime: r['订单结算时间'] || '',
+        paySubsidy: normMoney(r['支付补贴']),
+        platformSubsidy: normMoney(r['平台补贴']),
+        creatorSubsidy: normMoney(r['达人补贴']),
+        shippingFee: normMoney(r['运费']),
+        tax: normMoney(r['税费']),
+        shippingSubsidy: normMoney(r['运费补贴']),
+        distributionSource: r['分销来源'] || '',
+        activityId: r['营销活动id'] || '',
+        promoRate: normMoney(r['推广费率']),
+        promoTechFee: normMoney(r['推广技术服务费']),
+        estPromoFee: normMoney(r['预估推广费支出']),
+        actualPromoFee: normMoney(r['结算推广费支出']),
+        commissionType: r['佣金类型'] || '',
+        orderSource: r['订单来源'] || '',
+        trafficSubSource: r['流量细分来源'] || '',
+        trafficSource: r['流量来源'] || '',
+        orderType: r['订单类型'] || '',
+        importAt: new Date().toISOString()
+      };
+      if (existing.has(orderId)) {
+        const idx = orders.findIndex(x => x.orderId === orderId);
+        if (idx >= 0) { orders[idx] = o; updated++; }
+      } else {
+        orders.push(o); added++; existing.add(orderId);
+      }
+    });
+    saveData(appData);
+    preview.textContent = `导入完成：新增 ${added} 条，更新 ${updated} 条，共 ${orders.length} 条订单。`;
+    renderCreators(); renderCreatorOrders();
+  }
+
+  function matchCreatorByAccount(account, douyinId) {
+    if (!account && !douyinId) return null;
+    const list = appData.creators || [];
+    return list.find(c => {
+      const n = c.name || '';
+      return (account && n === account) || (douyinId && n === douyinId) ||
+             (account && n.includes(account)) || (douyinId && n.includes(douyinId));
+    }) || null;
+  }
+
+  function aggregateCreatorOrders() {
+    const orders = getCreatorOrders();
+    const byCreator = {};
+    const byAccount = {};
+    orders.forEach(o => {
+      const key = (o.authorAccount || o.douyinId || '未关联账号').trim();
+      if (!byAccount[key]) byAccount[key] = { account: key, count: 0, pay: 0, estCommission: 0, actualCommission: 0, promoFee: 0, creatorId: '' };
+      const a = byAccount[key];
+      a.count++;
+      a.pay += o.payAmount || 0;
+      a.estCommission += o.estCommission || 0;
+      a.actualCommission += o.actualCommission || 0;
+      a.promoFee += (o.estPromoFee || 0) + (o.actualPromoFee || 0);
+      // 尝试匹配达人
+      if (!a.creatorId) {
+        const c = matchCreatorByAccount(o.authorAccount, o.douyinId);
+        if (c) a.creatorId = c.id;
+      }
+      if (a.creatorId) {
+        if (!byCreator[a.creatorId]) byCreator[a.creatorId] = { pay: 0, estCommission: 0, actualCommission: 0, promoFee: 0, count: 0 };
+        const c = byCreator[a.creatorId];
+        c.pay += o.payAmount || 0;
+        c.estCommission += o.estCommission || 0;
+        c.actualCommission += o.actualCommission || 0;
+        c.promoFee += (o.estPromoFee || 0) + (o.actualPromoFee || 0);
+        c.count++;
+      }
+    });
+    return { byAccount, byCreator };
+  }
+
+  function renderCreatorOrders() {
+    const orders = getCreatorOrders();
+    const wrap = document.getElementById('cr-orders-wrap');
+    const tb = document.getElementById('cr-orders-table');
+    if (!wrap || !tb) return;
+    if (orders.length === 0) { wrap.classList.add('hidden'); return; }
+    wrap.classList.remove('hidden');
+    const { byAccount } = aggregateCreatorOrders();
+    const rows = Object.values(byAccount).sort((a, b) => b.pay - a.pay);
+    tb.innerHTML = rows.map(r => {
+      const creator = r.creatorId ? (appData.creators || []).find(c => c.id === r.creatorId) : null;
+      const link = creator ? `<span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-600">已关联 ${escapeHtml(creator.name)}</span>` : '<span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500">未关联达人</span>';
+      return `<tr class="hover:bg-slate-50">
+        <td class="px-3 py-2"><div class="font-medium text-slate-800 text-sm">${escapeHtml(r.account)}</div><div class="mt-0.5">${link}</div></td>
+        <td class="px-3 py-2 text-xs">${r.count}</td>
+        <td class="px-3 py-2 text-xs">${fmtMoney(r.pay)}</td>
+        <td class="px-3 py-2 text-xs">${fmtMoney(r.estCommission)}</td>
+        <td class="px-3 py-2 text-xs">${fmtMoney(r.actualCommission)}</td>
+        <td class="px-3 py-2 text-xs">${fmtMoney(r.promoFee)}</td>
+      </tr>`;
+    }).join('');
+  }
 
   // ---- 团长渠道管理（TZ 统一 ID，存 appData.v2.leaders）----
   function getLeaders() { return (appData.v2 && appData.v2.leaders) || []; }
@@ -4563,6 +4768,7 @@ ${r.script || '未填写'}
     normalizeCreators(); // 给达人补稳定 id(CR) 并迁移团长 creatorIds，打通双向关联
     normalizeV2Products(); // 修正商品店铺归属，确保 5 店商品都能被关联
     if (appData.v2 && !appData.v2.leaderOrders) appData.v2.leaderOrders = []; // 确保团长订单数组存在
+    if (appData.v2 && !appData.v2.creatorOrders) appData.v2.creatorOrders = []; // 确保达人订单数组存在
     updateDate();
     renderTasks();
     // 如果是新的一天，自动刷新灵感
