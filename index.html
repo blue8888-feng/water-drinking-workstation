@@ -1054,8 +1054,7 @@
 
   function loadData() {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
-    return {
+    const defaults = {
       tasks: [],
       ideas: [],
       customIdeas: [],
@@ -1074,6 +1073,7 @@
         { id: 'hs', name: '好水严选', gmv: 0, target: 50000, spend: 0, orders: 0 },
         { id: 'hq', name: '虎丘官方旗舰店', gmv: 0, target: 50000, spend: 0, orders: 0 }
       ],
+      productRank: [],
       // ===== 视频需求池 =====
       videoRequests: [],
       // ===== 千川投放计划 =====
@@ -1081,6 +1081,9 @@
       // ===== 达人合作 =====
       creators: []
     };
+    if (!raw) return defaults;
+    // 旧数据可能缺少 shops 等字段，用 defaults 补齐，避免页面空白
+    return Object.assign({}, defaults, JSON.parse(raw));
   }
 
   function saveData(data) {
