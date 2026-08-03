@@ -1212,6 +1212,18 @@
 
   let appData = loadData();
 
+  // 兜底：旧数据可能把 shops 写成空数组或缺字段，强制补齐默认 5 家店
+  if (!appData.shops || appData.shops.length === 0) {
+    appData.shops = [
+      { id: 'dt', name: '洞庭山官方旗舰店', gmv: 0, target: 200000, spend: 0, orders: 0 },
+      { id: 'dtq', name: '洞庭山泉官方旗舰店', gmv: 0, target: 50000, spend: 0, orders: 0 },
+      { id: 'ss', name: '蘇泉水饮旗舰店', gmv: 0, target: 50000, spend: 0, orders: 0 },
+      { id: 'hs', name: '好水严选', gmv: 0, target: 50000, spend: 0, orders: 0 },
+      { id: 'hq', name: '虎丘官方旗舰店', gmv: 0, target: 50000, spend: 0, orders: 0 }
+    ];
+    saveData(appData);
+  }
+
   // AI 模型配置是否可用（已开启且填了 Key）
   function aiReady() {
     const ai = appData.ai || {};
@@ -4186,7 +4198,17 @@ ${r.script || '未填写'}
   function getDrOptions() {
     return (appData.creators || []).map(c => ({ id: c.id || '', name: c.name || '' }));
   }
-  function getShopOptions() { return (appData.shops || []).map(s => ({ id: s.id, name: s.name })); }
+  function getShopOptions() {
+    const defaults = [
+      { id: 'dt', name: '洞庭山官方旗舰店' },
+      { id: 'dtq', name: '洞庭山泉官方旗舰店' },
+      { id: 'ss', name: '蘇泉水饮旗舰店' },
+      { id: 'hs', name: '好水严选' },
+      { id: 'hq', name: '虎丘官方旗舰店' }
+    ];
+    const shops = (appData.shops || []).filter(s => s.id && s.name);
+    return shops.length ? shops.map(s => ({ id: s.id, name: s.name })) : defaults;
+  }
   // 给达人补稳定 id（CR00x），并迁移团长 creatorIds 的 DR/idx 旧标识 → CR，保证双向关联一致
   function normalizeCreators() {
     const cs = appData.creators || [];
