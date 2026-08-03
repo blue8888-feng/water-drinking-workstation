@@ -1151,20 +1151,35 @@
       <div id="cp-import-modal" class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onclick="if(event.target===this)closeCpImportModal()">
         <div class="bg-white rounded-2xl p-6 w-full max-w-3xl shadow-xl max-h-[90vh] overflow-y-auto">
           <h3 class="text-lg font-bold text-slate-800 mb-4"><i class="fa-solid fa-file-import mr-1.5 text-brand-600"></i>导入运营驾驶舱数据</h3>
-          <p class="text-xs text-slate-500 mb-3">支持 xlsx / csv 上传。先选导入类型，再上传表格（第一行为表头，按表头自动识别字段）。</p>
+          <p class="text-xs text-slate-500 mb-3">支持 xlsx / csv 上传。先选导入类型，再上传表格（第一行为表头，按表头自动识别抖音罗盘字段）。</p>
           <div class="flex gap-4 mb-4 text-sm">
-            <label class="flex items-center gap-1.5 cursor-pointer"><input type="radio" name="cp-type" value="store" checked> 店铺指标</label>
-            <label class="flex items-center gap-1.5 cursor-pointer"><input type="radio" name="cp-type" value="rank"> 商品销售排名</label>
+            <label class="flex items-center gap-1.5 cursor-pointer"><input type="radio" name="cp-type" value="store" checked onchange="toggleCpShopSelect()"> 店铺指标</label>
+            <label class="flex items-center gap-1.5 cursor-pointer"><input type="radio" name="cp-type" value="rank" onchange="toggleCpShopSelect()"> 商品销售排名</label>
+          </div>
+          <div id="cp-shop-select-wrap" class="mb-3">
+            <label class="text-xs text-slate-500">导入到店铺 <span class="text-slate-400">（表格里无「店铺」列时，数据落到该店铺）</span></label>
+            <select id="cp-import-shop" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm mt-1"></select>
           </div>
           <div class="space-y-3">
             <div><input id="cp-import-file" type="file" accept=".xlsx,.xls,.csv,.txt" class="w-full text-sm text-slate-600"></div>
             <div><label class="text-xs text-slate-500">CSV 内容 <span class="text-slate-400">（如不上传文件，可粘贴 CSV 文本）</span></label>
-              <textarea id="cp-import-text" rows="6" placeholder="店铺,GMV,目标,推广消耗,订单数&#10;洞庭山官方旗舰店,210000,200000,35000,4200" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-mono"></textarea></div>
+              <textarea id="cp-import-text" rows="6" placeholder="日期,直播间成交金额,商品卡成交金额,成交金额(元),实际成交金额(扣除退款),退款金额,成交订单数,推广费,ROI..." class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-mono"></textarea></div>
             <div id="cp-import-preview" class="text-xs text-slate-500"></div>
           </div>
           <div class="flex gap-2 mt-5">
             <button onclick="importCockpit()" class="flex-1 px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-lg">导入</button>
             <button onclick="closeCpImportModal()" class="px-4 py-2.5 text-slate-500 hover:text-slate-700 rounded-lg">取消</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 店铺经营明细弹窗 -->
+      <div id="store-metrics-modal" class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onclick="if(event.target===this)closeStoreMetricsModal()">
+        <div class="bg-white rounded-2xl p-6 w-full max-w-4xl shadow-xl max-h-[90vh] overflow-y-auto">
+          <h3 class="text-lg font-bold text-slate-800 mb-4"><i class="fa-solid fa-chart-bar mr-1.5 text-brand-600"></i><span id="sm-title">店铺经营明细</span></h3>
+          <div id="sm-body" class="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm"></div>
+          <div class="mt-5 flex justify-end">
+            <button onclick="closeStoreMetricsModal()" class="px-4 py-2.5 text-slate-500 hover:text-slate-700 rounded-lg">关闭</button>
           </div>
         </div>
       </div>
@@ -3463,7 +3478,10 @@ ${r.script || '未填写'}
       <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4">
         <div class="flex items-center justify-between mb-2">
           <h5 class="font-semibold text-slate-800 text-sm truncate">${s.name}</h5>
-          <button onclick="editStore('${s.id}')" class="text-xs text-slate-400 hover:text-brand-600"><i class="fa-solid fa-pen"></i></button>
+          <div class="flex items-center gap-2">
+            <button onclick="openStoreMetricsModal('${s.id}')" class="text-xs text-slate-400 hover:text-brand-600" title="经营明细"><i class="fa-solid fa-chart-bar"></i></button>
+            <button onclick="editStore('${s.id}')" class="text-xs text-slate-400 hover:text-brand-600"><i class="fa-solid fa-pen"></i></button>
+          </div>
         </div>
         <div class="flex items-end justify-between mb-1">
           <span class="text-2xl font-bold text-slate-800">${fmtMoney(s.gmv || 0)}</span>
@@ -3554,10 +3572,25 @@ ${r.script || '未填写'}
   }
 
   // ---- 运营驾驶舱数据导入 ----
+  function fillCpShopSelect() {
+    const sel = document.getElementById('cp-import-shop');
+    if (!sel) return;
+    const shops = appData.shops || [];
+    sel.innerHTML = shops.map(s => `<option value="${s.id}">${escapeHtml(s.name)}</option>`).join('');
+  }
+
+  function toggleCpShopSelect() {
+    const type = (document.querySelector('input[name="cp-type"]:checked') || {}).value || 'store';
+    const wrap = document.getElementById('cp-shop-select-wrap');
+    if (wrap) wrap.classList.toggle('hidden', type === 'rank');
+  }
+
   function openCpImportModal() {
     document.getElementById('cp-import-file').value = '';
     document.getElementById('cp-import-text').value = '';
     document.getElementById('cp-import-preview').textContent = '';
+    fillCpShopSelect();
+    toggleCpShopSelect();
     document.getElementById('cp-import-modal').classList.remove('hidden');
   }
   function closeCpImportModal() { document.getElementById('cp-import-modal').classList.add('hidden'); }
@@ -3590,26 +3623,82 @@ ${r.script || '未填写'}
     else applyCockpitStores(rows);
   }
 
+  function resolveShop(nameHint) {
+    if (!appData.shops) appData.shops = [];
+    const hint = String(nameHint || '').trim();
+    if (!hint) return null;
+    return appData.shops.find(s => s.name === hint) ||
+           appData.shops.find(s => s.name && (s.name.includes(hint) || hint.includes(s.name)));
+  }
+
   function applyCockpitStores(rows) {
     const preview = document.getElementById('cp-import-preview');
     if (!appData.shops) appData.shops = [];
-    let updated = 0, skipped = 0; const details = [];
+    const sel = document.getElementById('cp-import-shop');
+    const defaultId = sel ? sel.value : (appData.shops[0] && appData.shops[0].id);
+    const groups = {};
+    let skipped = 0;
     rows.forEach(r => {
-      const name = String(pick(r, ['店铺', '店铺名', '店铺名称', '名称', '店名']) || '').trim();
-      if (!name) { skipped++; return; }
-      let shop = appData.shops.find(s => s.name === name);
-      if (!shop) shop = appData.shops.find(s => s.name && (s.name.includes(name) || name.includes(s.name)));
-      if (!shop) { skipped++; details.push('未匹配到店铺：' + name); return; }
-      let ch = 0;
-      const gmv = pick(r, ['GMV', '成交额', '成交金额', '销售额', '成交', '支付GMV', '支付金额', 'gmv']);
-      if (gmv !== '') { shop.gmv = normMoney(gmv); ch++; }
-      const target = pick(r, ['目标', '目标GMV', '目标销售额', '目标额']);
-      if (target !== '') { shop.target = normMoney(target); ch++; }
-      const spend = pick(r, ['推广消耗', '消耗', '投放消耗', '花费', '推广花费', '消耗金额']);
-      if (spend !== '') { shop.spend = normMoney(spend); ch++; }
-      const orders = pick(r, ['订单数', '订单', '订单量', '成交订单数']);
-      if (orders !== '') { shop.orders = normMoney(orders); ch++; }
-      if (ch) { updated++; details.push('已更新：' + shop.name + '（' + ch + ' 项）'); }
+      const shopName = String(pick(r, ['店铺', '店铺名', '店铺名称', '名称', '店名']) || '').trim();
+      let shop = shopName ? resolveShop(shopName) : null;
+      if (!shop) shop = appData.shops.find(s => s.id === defaultId);
+      if (!shop) { skipped++; return; }
+      if (!groups[shop.id]) groups[shop.id] = { shop, rows: [] };
+      groups[shop.id].rows.push(r);
+    });
+    if (!Object.keys(groups).length) { preview.textContent = '未匹配到任何店铺，请检查表格或选择正确的导入店铺。'; return; }
+
+    let updated = 0;
+    const details = [];
+    Object.values(groups).forEach(g => {
+      const { shop, rows } = g;
+      if (rows.length === 1) {
+        const r = rows[0];
+        shop.metrics = Object.assign({}, r);
+        const gmv = pick(r, ['成交金额(元)', '实际成交金额(扣除退款)', '直播间成交金额', '商品卡成交金额']);
+        if (gmv !== '') shop.gmv = normMoney(gmv);
+        const spend = pick(r, ['推广费', '推广费用', '投放费用']);
+        if (spend !== '') shop.spend = normMoney(spend);
+        const orders = pick(r, ['成交订单数', '订单数', '订单']);
+        if (orders !== '') shop.orders = normMoney(orders);
+        const target = pick(r, ['目标', '目标GMV', '目标销售额', '目标金额']);
+        if (target !== '') shop.target = normMoney(target);
+      } else {
+        const sums = {};
+        let dateStr = '';
+        rows.forEach(r => {
+          Object.keys(r).forEach(k => {
+            const v = r[k];
+            if (v === undefined || v === null || v === '') return;
+            if (/日期/.test(k)) { if (!dateStr) dateStr = String(v); return; }
+            if (/率|占比|单价|ROI/i.test(k)) return;
+            const n = normMoney(v);
+            if (!isNaN(n)) sums[k] = (sums[k] || 0) + n;
+          });
+        });
+        shop.metrics = Object.assign({ 日期: dateStr }, sums);
+        const totalGmv = sums['成交金额(元)'] || sums['实际成交金额(扣除退款)'] || 0;
+        const totalOrders = sums['成交订单数'] || 0;
+        const totalCustomers = sums['成交人数（去除刷单）'] || 0;
+        const oldCustomers = sums['老客人数'] || 0;
+        const visitors = sums['商品访客数（实际为曝光）'] || 0;
+        const clicks = sums['商品点击人数（实际为访客）'] || 0;
+        const spend = sums['推广费'] || 0;
+        const pcExposure = sums['商品卡曝光人数'] || 0;
+        const pcClicks = sums['商品卡点击人数'] || 0;
+        if (totalCustomers) shop.metrics['老客占比'] = oldCustomers / totalCustomers;
+        if (visitors) shop.metrics['商品点击率'] = clicks / visitors;
+        if (clicks) shop.metrics['支付转化率'] = totalOrders / clicks;
+        if (totalGmv) shop.metrics['推广费占比'] = spend / totalGmv;
+        if (spend) shop.metrics['ROI'] = totalGmv / spend;
+        if (totalOrders) shop.metrics['成交客单价(元)'] = totalGmv / totalOrders;
+        if (pcExposure) shop.metrics['商品点击率_1'] = pcClicks / pcExposure;
+        shop.gmv = totalGmv;
+        shop.spend = spend;
+        shop.orders = totalOrders;
+      }
+      updated++;
+      details.push('已更新：' + shop.name + '（' + rows.length + ' 行）');
     });
     saveData(appData); renderCockpit();
     preview.innerHTML = `导入完成：更新 <b>${updated}</b> 个店铺，跳过 <b>${skipped}</b> 行。` +
@@ -3631,6 +3720,30 @@ ${r.script || '未填写'}
     saveData(appData); renderCockpit();
     preview.textContent = `导入完成：商品销售排名共 ${rank.length} 条（已覆盖原数据）。`;
   }
+
+  function openStoreMetricsModal(shopId) {
+    const shop = (appData.shops || []).find(s => s.id === shopId);
+    if (!shop) return;
+    document.getElementById('sm-title').textContent = (shop.name || '店铺') + ' 经营明细';
+    const metrics = shop.metrics || {};
+    const keys = Object.keys(metrics).filter(k => metrics[k] !== '' && metrics[k] !== undefined);
+    const body = document.getElementById('sm-body');
+    if (!keys.length) {
+      body.innerHTML = '<div class="col-span-full text-slate-400 text-sm">暂无导入的明细数据</div>';
+    } else {
+      body.innerHTML = keys.map(k => {
+        let v = metrics[k];
+        let cls = 'text-slate-700';
+        if (/金额|成交额|费|单价|元/.test(k) && !isNaN(Number(v))) v = fmtMoney(Number(v));
+        else if (/率|占比/.test(k) && !isNaN(Number(v))) { v = (Number(v) <= 1 ? (Number(v) * 100).toFixed(2) : Number(v).toFixed(2)) + '%'; cls = 'text-brand-700 font-medium'; }
+        else if (k === 'ROI' && !isNaN(Number(v))) { v = Number(v).toFixed(2); cls = 'text-brand-700 font-medium'; }
+        else v = escapeHtml(String(v));
+        return `<div class="bg-slate-50 rounded-lg p-3"><div class="text-xs text-slate-400 mb-1">${escapeHtml(k)}</div><div class="${cls}">${v}</div></div>`;
+      }).join('');
+    }
+    document.getElementById('store-metrics-modal').classList.remove('hidden');
+  }
+  function closeStoreMetricsModal() { document.getElementById('store-metrics-modal').classList.add('hidden'); }
 
   function fillShopSelect(selId) {
     const sel = document.getElementById(selId);
