@@ -1151,7 +1151,7 @@
       <div id="cp-import-modal" class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onclick="if(event.target===this)closeCpImportModal()">
         <div class="bg-white rounded-2xl p-6 w-full max-w-3xl shadow-xl max-h-[90vh] overflow-y-auto">
           <h3 class="text-lg font-bold text-slate-800 mb-4"><i class="fa-solid fa-file-import mr-1.5 text-brand-600"></i>导入运营驾驶舱数据</h3>
-          <p class="text-xs text-slate-500 mb-3">支持 xlsx / csv 上传。先选导入类型，再上传表格（第一行为表头，按表头自动识别抖音罗盘字段）。</p>
+          <p class="text-xs text-slate-500 mb-3">支持 xlsx / csv 上传。先选导入类型，再上传表格（按表头自动识别抖音罗盘字段；如果表头不在第一行，请在下方的「表头行号」里指定）。</p>
           <div class="flex gap-4 mb-4 text-sm">
             <label class="flex items-center gap-1.5 cursor-pointer"><input type="radio" name="cp-type" value="store" checked onchange="toggleCpShopSelect()"> 店铺指标</label>
             <label class="flex items-center gap-1.5 cursor-pointer"><input type="radio" name="cp-type" value="rank" onchange="toggleCpShopSelect()"> 商品销售排名</label>
@@ -1159,6 +1159,18 @@
           <div id="cp-shop-select-wrap" class="mb-3">
             <label class="text-xs text-slate-500">导入到店铺 <span class="text-slate-400">（表格里无「店铺」列时，数据落到该店铺）</span></label>
             <select id="cp-import-shop" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm mt-1"></select>
+          </div>
+          <div class="grid grid-cols-2 gap-3 mb-3">
+            <div>
+              <label class="text-xs text-slate-500">表头行号</label>
+              <input id="cp-header-row" type="number" min="1" value="1" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm mt-1">
+            </div>
+            <div class="flex items-end">
+              <label class="flex items-center gap-2 text-sm cursor-pointer select-none">
+                <input id="cp-no-header" type="checkbox" class="w-4 h-4 text-brand-600 rounded border-slate-300">
+                <span class="text-slate-600">表格没有表头，按抖音罗盘字段顺序导入</span>
+              </label>
+            </div>
           </div>
           <div class="space-y-3">
             <div><input id="cp-import-file" type="file" accept=".xlsx,.xls,.csv,.txt" class="w-full text-sm text-slate-600"></div>
@@ -3585,15 +3597,73 @@ ${r.script || '未填写'}
     if (wrap) wrap.classList.toggle('hidden', type === 'rank');
   }
 
+  const COCKPIT_FIELD_ORDER = [
+    '日期','直播间成交金额','商品卡成交金额','老客户分析','成交金额(元)','实际成交金额(扣除退款)','退款金额','成交订单数','成交人数（去除刷单）','新客人数','老客人数','老客占比','商品访客数（实际为曝光）','商品点击人数（实际为访客）','商品点击率','支付转化率','成交客单价(元)','刷单金额','推广费','推广成交','推广费占比','ROI','商品卡曝光人数','商品卡点击人数','商品点击率'
+  ];
+
   function openCpImportModal() {
     document.getElementById('cp-import-file').value = '';
     document.getElementById('cp-import-text').value = '';
     document.getElementById('cp-import-preview').textContent = '';
+    document.getElementById('cp-header-row').value = '1';
+    document.getElementById('cp-no-header').checked = false;
     fillCpShopSelect();
     toggleCpShopSelect();
     document.getElementById('cp-import-modal').classList.remove('hidden');
   }
   function closeCpImportModal() { document.getElementById('cp-import-modal').classList.add('hidden'); }
+
+  function readXlsxRaw(file) {
+    return new Promise((resolve, reject) => {
+      loadXLSX().then(XLSX => {
+        const reader = new FileReader();
+        reader.onload = e => {
+          try {
+            const data = new Uint8Array(e.target.result);
+            const wb = XLSX.read(data, { type: 'array' });
+            let arr = [];
+            for (const sheetName of wb.SheetNames) {
+              const ws = wb.Sheets[sheetName];
+              const r = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+              if (r && r.length) { arr = r; break; }
+            }
+            if (!arr.length) return reject(new Error('表格里没有读到有效数据行'));
+            resolve(arr);
+          } catch (err) { reject(err); }
+        };
+        reader.onerror = () => reject(new Error('文件读取失败'));
+        reader.readAsArrayBuffer(file);
+      }).catch(reject);
+    });
+  }
+
+  function buildCockpitRowsFromArrays(arr, headerRow, noHeader) {
+    const startIdx = Math.max(0, (Number(headerRow) || 1) - 1);
+    if (noHeader) {
+      return arr.slice(startIdx).map(row => {
+        const obj = {};
+        COCKPIT_FIELD_ORDER.forEach((k, i) => { if (row[i] !== undefined && row[i] !== '') obj[k] = row[i]; });
+        return obj;
+      });
+    }
+    const headers = (arr[startIdx] || []).map(h => normalizeHeader(h));
+    const rows = [];
+    for (let i = startIdx + 1; i < arr.length; i++) {
+      const row = arr[i];
+      if (!row || !row.length) continue;
+      const obj = {};
+      let hasValue = false;
+      headers.forEach((h, idx) => {
+        const v = row[idx];
+        if (v === undefined || v === null || v === '') return;
+        const key = h || `列${idx + 1}`;
+        obj[key] = v;
+        hasValue = true;
+      });
+      if (hasValue) rows.push(obj);
+    }
+    return rows;
+  }
 
   function importCockpit() {
     const fileInput = document.getElementById('cp-import-file');
@@ -3601,10 +3671,15 @@ ${r.script || '未填写'}
     const preview = document.getElementById('cp-import-preview');
     const type = (document.querySelector('input[name="cp-type"]:checked') || {}).value || 'store';
     const file = fileInput.files && fileInput.files[0];
+    const headerRow = Math.max(1, Number(document.getElementById('cp-header-row').value) || 1);
+    const noHeader = document.getElementById('cp-no-header').checked;
     preview.innerHTML = '<span class="text-brand-600"><i class="fa-solid fa-circle-notch fa-spin mr-1"></i>正在解析，请稍候...</span>';
     if (file) {
       if (/\.xlsx?$/i.test(file.name)) {
-        readXlsxFile(file).then(rows => processCockpitRows(rows, type)).catch(err => {
+        readXlsxRaw(file).then(arr => {
+          const rows = buildCockpitRowsFromArrays(arr, headerRow, noHeader);
+          processCockpitRows(rows, type);
+        }).catch(err => {
           preview.innerHTML = '<span class="text-red-500">xlsx 解析失败：' + escapeHtml(String(err.message || err)) + '</span>';
         });
         return;
@@ -3732,8 +3807,11 @@ ${r.script || '未填写'}
     const metrics = shop.metrics || {};
     const keys = Object.keys(metrics).filter(k => metrics[k] !== '' && metrics[k] !== undefined);
     const body = document.getElementById('sm-body');
+    const badKeys = keys.filter(k => /^__EMPTY/.test(k) || /^列\d+/.test(k));
     if (!keys.length) {
       body.innerHTML = '<div class="col-span-full text-slate-400 text-sm">暂无导入的明细数据</div>';
+    } else if (badKeys.length >= keys.length / 2) {
+      body.innerHTML = `<div class="col-span-full text-amber-700 bg-amber-50 rounded-lg p-3 text-sm"><i class="fa-solid fa-triangle-exclamation mr-1"></i>表头未识别（显示为 ${badKeys[0]} 等），驾驶舱卡片不会更新。请重新导入，并在弹窗里正确设置「表头行号」或勾选「表格没有表头，按抖音罗盘字段顺序导入」。</div>`;
     } else {
       body.innerHTML = keys.map(k => {
         let v = metrics[k];
