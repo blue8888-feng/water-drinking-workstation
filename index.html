@@ -3601,13 +3601,17 @@ ${r.script || '未填写'}
     const preview = document.getElementById('cp-import-preview');
     const type = (document.querySelector('input[name="cp-type"]:checked') || {}).value || 'store';
     const file = fileInput.files && fileInput.files[0];
+    preview.innerHTML = '<span class="text-brand-600"><i class="fa-solid fa-circle-notch fa-spin mr-1"></i>正在解析，请稍候...</span>';
     if (file) {
       if (/\.xlsx?$/i.test(file.name)) {
-        readXlsxFile(file).then(rows => processCockpitRows(rows, type)).catch(err => preview.textContent = 'xlsx 解析失败：' + (err.message || err));
+        readXlsxFile(file).then(rows => processCockpitRows(rows, type)).catch(err => {
+          preview.innerHTML = '<span class="text-red-500">xlsx 解析失败：' + escapeHtml(String(err.message || err)) + '</span>';
+        });
         return;
       }
       const reader = new FileReader();
       reader.onload = e => processCockpitRows(parseCSV(e.target.result), type);
+      reader.onerror = () => preview.innerHTML = '<span class="text-red-500">文件读取失败</span>';
       reader.readAsText(file, 'utf-8');
     } else if (text) {
       processCockpitRows(parseCSV(text), type);
@@ -3701,7 +3705,7 @@ ${r.script || '未填写'}
       details.push('已更新：' + shop.name + '（' + rows.length + ' 行）');
     });
     saveData(appData); renderCockpit();
-    preview.innerHTML = `导入完成：更新 <b>${updated}</b> 个店铺，跳过 <b>${skipped}</b> 行。` +
+    preview.innerHTML = `<div class="text-emerald-600 font-semibold"><i class="fa-solid fa-circle-check mr-1"></i>导入完成：更新 <b>${updated}</b> 个店铺，跳过 <b>${skipped}</b> 行。</div>` +
       (details.length ? '<div class="mt-2 text-slate-600">' + details.slice(0, 12).map(d => '· ' + escapeHtml(d)).join('<br>') + '</div>' : '');
   }
 
@@ -3718,7 +3722,7 @@ ${r.script || '未填写'}
     });
     appData.productRank = rank;
     saveData(appData); renderCockpit();
-    preview.textContent = `导入完成：商品销售排名共 ${rank.length} 条（已覆盖原数据）。`;
+    preview.innerHTML = `<div class="text-emerald-600 font-semibold"><i class="fa-solid fa-circle-check mr-1"></i>导入完成：商品销售排名共 ${rank.length} 条（已覆盖原数据）。</div>`;
   }
 
   function openStoreMetricsModal(shopId) {
@@ -4853,16 +4857,33 @@ ${r.script || '未填写'}
         'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
         'https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js'
       ];
-      let i = 0;
+      let i = 0, timer = null;
+      function cleanup(s) { if (s && s.parentNode) s.parentNode.removeChild(s); }
       (function tryNext() {
-        if (i >= cdns.length) return reject(new Error('无法加载 xlsx 解析库（请检查网络后重试）'));
+        if (timer) { clearTimeout(timer); timer = null; }
+        if (i >= cdns.length) return reject(new Error('无法加载 xlsx 解析库，请检查网络或更换浏览器后重试'));
         const s = document.createElement('script');
         s.src = cdns[i++];
-        s.onload = () => window.XLSX ? resolve(window.XLSX) : tryNext();
-        s.onerror = tryNext;
+        s.async = true;
+        timer = setTimeout(() => { cleanup(s); tryNext(); }, 8000);
+        s.onload = () => { clearTimeout(timer); timer = null; if (window.XLSX) resolve(window.XLSX); else tryNext(); };
+        s.onerror = () => { cleanup(s); tryNext(); };
         document.head.appendChild(s);
       })();
     });
+  }
+
+  function normalizeHeader(k) {
+    return String(k || '').trim()
+      .replace(/[\s\u00A0\u3000]+/g, ' ')
+      .replace(/（/g, '(').replace(/）/g, ')')
+      .replace(/：/g, ':').replace(/，/g, ',');
+  }
+
+  function normalizeXlsxRow(r) {
+    const out = {};
+    Object.keys(r || {}).forEach(k => { out[normalizeHeader(k)] = r[k]; });
+    return out;
   }
 
   function readXlsxFile(file) {
@@ -4873,9 +4894,14 @@ ${r.script || '未填写'}
           try {
             const data = new Uint8Array(e.target.result);
             const wb = XLSX.read(data, { type: 'array' });
-            const ws = wb.Sheets[wb.SheetNames[0]];
-            const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
-            resolve(rows);
+            let rows = [];
+            for (const sheetName of wb.SheetNames) {
+              const ws = wb.Sheets[sheetName];
+              const r = XLSX.utils.sheet_to_json(ws, { defval: '' });
+              if (r && r.length) { rows = r; break; }
+            }
+            if (!rows.length) return reject(new Error('表格里没有读到有效数据行（请确认第一行是表头，且至少有一行数据）'));
+            resolve(rows.map(normalizeXlsxRow));
           } catch (err) { reject(err); }
         };
         reader.onerror = () => reject(new Error('文件读取失败'));
@@ -4885,7 +4911,14 @@ ${r.script || '未填写'}
   }
 
   function pick(r, names) {
-    for (const n of names) { if (r && r[n] !== undefined && r[n] !== '') return r[n]; }
+    if (!r) return '';
+    const keys = Object.keys(r);
+    for (const n of names) {
+      const nn = normalizeHeader(n);
+      for (const k of keys) {
+        if (normalizeHeader(k) === nn && r[k] !== undefined && r[k] !== '') return r[k];
+      }
+    }
     return '';
   }
 
